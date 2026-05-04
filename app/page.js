@@ -1,4 +1,6 @@
 import BankTransferSection from "@/components/BankTransferSection";
+import LocationSection from "@/components/LocationSection";
+import LocationWash from "@/components/LocationWash";
 import { SparkBurstProvider } from "@/components/SparkBurstProvider";
 import SafariWash from "@/components/SafariWash";
 import WinterMotifPattern from "@/components/WinterMotifPattern";
@@ -24,19 +26,20 @@ export default async function Home() {
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <header className="relative isolate mb-12 overflow-hidden rounded-3xl px-4 py-8 text-center sm:px-6 sm:py-10">
           <SafariWash anchor="top" />
-          <div className="relative z-10 [text-shadow:0_1px_2px_rgba(255,255,255,0.92),0_0_28px_rgba(219,234,254,0.75)]">
-            <p className="font-display text-base font-semibold uppercase tracking-[0.2em] text-aira-navy sm:text-lg">
-              Baby wishlist
-            </p>
-            <h1 className="font-display mt-3 text-5xl font-bold tracking-tight text-aira-navy sm:text-6xl lg:text-7xl">
-              Untuk{" "}
-              <span className="bg-gradient-to-r from-sky-500 to-aira-navy bg-clip-text text-transparent [text-shadow:none] drop-shadow-sm">
-                Aira
-              </span>
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg font-medium text-slate-800 sm:text-xl">
-              Hadiah manis - pilih kategori, ketuk kartu untuk detail,
-              lalu belanja di Shopee atau Tokopedia.
+          <div className="relative z-10">
+            <div className="[text-shadow:0_1px_2px_rgba(255,255,255,0.92),0_0_28px_rgba(219,234,254,0.75)]">
+              <p className="font-display text-base font-semibold uppercase tracking-[0.2em] text-aira-navy sm:text-lg">
+                Baby wishlist
+              </p>
+              <h1 className="font-display mt-3 text-5xl font-bold tracking-tight text-aira-navy sm:text-6xl lg:text-7xl">
+                Gift for{" "}
+                <span className="bg-gradient-to-r from-sky-500 to-aira-navy bg-clip-text text-transparent [text-shadow:none] drop-shadow-sm">
+                  Aira
+                </span>
+              </h1>
+            </div>
+            <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 sm:text-lg">
+              Wishlist Aira, berisi hadiah-hadiah yang dia sukai. Terima kasih atas semua dukungannya yaa! 💖❄️
             </p>
           </div>
         </header>
@@ -57,6 +60,13 @@ export default async function Home() {
           <SafariWash anchor="bottom" />
           <div className="relative z-10">
             <BankTransferSection />
+          </div>
+        </div>
+
+        <div className="relative isolate mt-16 overflow-hidden rounded-3xl px-2 pb-8 pt-6 sm:mt-20 sm:px-4 sm:pb-10 sm:pt-8">
+          <LocationWash />
+          <div className="relative z-10">
+            <LocationSection />
           </div>
         </div>
       </div>
