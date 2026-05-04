@@ -32,14 +32,14 @@ export default async function Home() {
                 Baby wishlist
               </p>
               <h1 className="font-display mt-3 text-5xl font-bold tracking-tight text-aira-navy sm:text-6xl lg:text-7xl">
-                Gift for{" "}
+                Mahardika&apos;s{" "}
                 <span className="bg-gradient-to-r from-sky-500 to-aira-navy bg-clip-text text-transparent [text-shadow:none] drop-shadow-sm">
-                  Aira
+                  Baby
                 </span>
               </h1>
             </div>
             <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 sm:text-lg">
-              Wishlist Aira, berisi hadiah-hadiah yang dia sukai. Terima kasih atas semua dukungannya yaa! 💖❄️
+              Wishlist si kecil, berisi hadiah-hadiah yang dia sukai. Terima kasih atas semua dukungannya yaa! 💖❄️
             </p>
           </div>
         </header>
