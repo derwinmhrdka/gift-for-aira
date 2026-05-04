@@ -1,15 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import CategoryPills from "./CategoryPills";
+import ProductModal from "./ProductModal";
 import ProductSearch from "./ProductSearch";
 import WishlistGrid from "./WishlistGrid";
-
-const ProductModal = dynamic(() => import("./ProductModal"), {
-  ssr: false,
-  loading: () => null,
-});
 
 function collectCategories(products) {
   const set = new Set();
@@ -47,6 +42,11 @@ export default function WishlistBoard({ products }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
 
+  const handleCloseModal = useCallback(() => {
+    document.body.style.removeProperty("overflow");
+    setSelected(null);
+  }, []);
+
   const filteredByCategory = useMemo(() => {
     if (filter === "all") return products;
     return products.filter((p) =>
@@ -69,7 +69,11 @@ export default function WishlistBoard({ products }) {
         onSelect={setFilter}
       />
       <WishlistGrid products={filtered} onOpen={setSelected} />
-      <ProductModal product={selected} onClose={() => setSelected(null)} />
+      <ProductModal
+        key={selected?.id ?? "closed"}
+        product={selected}
+        onClose={handleCloseModal}
+      />
     </>
   );
 }

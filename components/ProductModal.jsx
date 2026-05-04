@@ -1,9 +1,44 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+const ANIM_MS = 300;
 
 export default function ProductModal({ product, onClose }) {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const closeTimerRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const closeModal = useCallback(() => {
+    setPanelOpen(false);
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      onClose();
+    }, ANIM_MS);
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    if (!product) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      return undefined;
+    }
+    setPanelOpen(false);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        setPanelOpen(true);
+      });
+    });
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [product]);
+
   useEffect(() => {
     if (!product) return undefined;
     const prev = document.body.style.overflow;
@@ -16,15 +51,28 @@ export default function ProductModal({ product, onClose }) {
   useEffect(() => {
     if (!product) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeModal();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [product, onClose]);
+  }, [product, closeModal]);
 
-  if (!product) return null;
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
-  return (
+  if (!product || typeof document === "undefined") return null;
+
+  const backdropClass = panelOpen ? "opacity-100" : "opacity-0";
+
+  const panelClass = panelOpen
+    ? "translate-y-0 opacity-100 sm:translate-y-0 sm:scale-100 motion-reduce:translate-y-0 motion-reduce:scale-100"
+    : "translate-y-[min(100%,5.5rem)] opacity-0 sm:translate-y-6 sm:scale-[0.96] motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:opacity-0";
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
       role="dialog"
@@ -33,21 +81,25 @@ export default function ProductModal({ product, onClose }) {
     >
       <button
         type="button"
-        className="absolute inset-0 z-0 bg-stone-900/40 backdrop-blur-sm transition-opacity duration-300"
-        onClick={onClose}
+        className={`absolute inset-0 z-0 bg-gradient-to-b from-slate-600/25 via-sky-900/20 to-white/35 backdrop-blur-md transition-opacity ease-out motion-reduce:from-slate-700/35 motion-reduce:via-slate-700/30 motion-reduce:to-slate-700/35 motion-reduce:backdrop-blur-none motion-reduce:transition-opacity motion-reduce:duration-150 ${backdropClass}`}
+        style={{ transitionDuration: `${ANIM_MS}ms` }}
+        onClick={closeModal}
         aria-label="Tutup"
       />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/60 bg-aira-pink/95 p-6 shadow-2xl shadow-violet-200/50 transition duration-300 ease-out sm:p-8">
+      <div
+        className={`relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/70 bg-gradient-to-b from-white/96 via-white/94 to-sky-50/88 p-6 text-slate-800 shadow-[0_25px_60px_-15px_rgba(56,189,248,0.18),0_0_0_1px_rgba(255,255,255,0.65)_inset] shadow-sky-200/35 backdrop-blur-2xl subpixel-antialiased ring-1 ring-white/80 transition-[opacity,transform] ease-out motion-reduce:from-white motion-reduce:via-white motion-reduce:to-white motion-reduce:shadow-xl motion-reduce:ring-0 motion-reduce:transition-opacity motion-reduce:duration-150 ${panelClass}`}
+        style={{ transitionDuration: `${ANIM_MS}ms` }}
+      >
         <button
           type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 z-[60] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/80 bg-white text-stone-600 shadow-lg ring-1 ring-stone-200/80 transition hover:bg-stone-50 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-violet-400"
+          onClick={closeModal}
+          className="absolute right-4 top-4 z-[60] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/80 bg-white/95 text-lg font-semibold text-slate-700 shadow-md shadow-sky-200/30 backdrop-blur-sm transition hover:bg-white hover:text-aira-navy focus:outline-none focus:ring-2 focus:ring-sky-400/80 motion-reduce:bg-white"
           aria-label="Tutup"
         >
           ✕
         </button>
 
-        <div className="relative z-0 overflow-hidden rounded-3xl bg-white/60 ring-1 ring-white/80">
+        <div className="relative z-0 overflow-hidden rounded-3xl border border-white/70 bg-white/75 shadow-inner shadow-white/40 backdrop-blur-md motion-reduce:bg-white motion-reduce:backdrop-blur-none">
           {product.imageUrl ? (
             <Image
               src={product.imageUrl}
@@ -58,7 +110,7 @@ export default function ProductModal({ product, onClose }) {
               unoptimized
             />
           ) : (
-            <div className="flex aspect-[4/3] w-full items-center justify-center bg-aira-lavender/50 text-base text-stone-400">
+            <div className="flex aspect-[4/3] w-full items-center justify-center bg-slate-100 text-base font-medium text-slate-600">
               No image
             </div>
           )}
@@ -66,22 +118,22 @@ export default function ProductModal({ product, onClose }) {
 
         <h2
           id="modal-title"
-          className="font-display mt-5 text-3xl font-bold tracking-tight text-stone-800 sm:text-4xl"
+          className="font-display mt-5 text-3xl font-bold tracking-tight text-aira-navy sm:text-4xl"
         >
           {product.name}
         </h2>
         {product.brand ? (
-          <p className="mt-2 text-base font-medium text-violet-700 sm:text-lg">
+          <p className="mt-2 text-base font-semibold text-sky-900 sm:text-lg">
             {product.brand}
           </p>
         ) : null}
         {product.warna ? (
-          <p className="mt-1.5 text-sm text-stone-500 sm:text-base">
-            <span className="font-semibold text-stone-600">Warna: </span>
+          <p className="mt-1.5 text-sm text-slate-700 sm:text-base">
+            <span className="font-semibold text-sky-950">Warna: </span>
             {product.warna}
           </p>
         ) : null}
-        <p className="mt-3 text-xl font-bold text-emerald-800 sm:text-2xl">
+        <p className="mt-3 text-xl font-extrabold text-aira-navy sm:text-2xl">
           {product.priceLabel}
         </p>
         {product.categories?.length ? (
@@ -89,7 +141,7 @@ export default function ProductModal({ product, onClose }) {
             {product.categories.map((c) => (
               <span
                 key={c}
-                className="rounded-full bg-aira-mint/80 px-3 py-1.5 text-sm font-semibold text-emerald-900"
+                className="rounded-full border border-sky-200/60 bg-white/90 px-3 py-1.5 text-sm font-semibold text-aira-navy shadow-sm backdrop-blur-sm motion-reduce:bg-white motion-reduce:backdrop-blur-none"
               >
                 {c}
               </span>
@@ -98,16 +150,16 @@ export default function ProductModal({ product, onClose }) {
         ) : null}
 
         {product.summary ? (
-          <p className="mt-5 rounded-2xl border border-violet-100 bg-violet-50/80 px-4 py-3 text-base font-medium leading-relaxed text-stone-700 sm:text-lg">
+          <p className="mt-5 rounded-2xl border border-sky-100/80 bg-gradient-to-br from-white/95 to-sky-50/90 px-4 py-3 text-base font-medium leading-relaxed text-slate-800 shadow-sm backdrop-blur-sm sm:text-lg motion-reduce:from-white motion-reduce:to-sky-50 motion-reduce:backdrop-blur-none">
             {product.summary}
           </p>
         ) : null}
         {product.description ? (
-          <p className="mt-5 whitespace-pre-wrap text-base leading-relaxed text-stone-600 sm:text-lg">
+          <p className="mt-5 whitespace-pre-wrap text-base leading-relaxed text-slate-700 sm:text-lg">
             {product.description}
           </p>
         ) : !product.summary ? (
-          <p className="mt-5 text-base italic text-stone-400">
+          <p className="mt-5 text-base italic text-slate-600/95">
             Belum ada deskripsi.
           </p>
         ) : null}
@@ -146,7 +198,7 @@ export default function ProductModal({ product, onClose }) {
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-display inline-flex min-w-0 flex-1 items-center justify-center rounded-3xl bg-stone-600 px-5 py-3.5 text-center text-base font-bold text-white shadow-md transition hover:bg-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
+                className="font-display inline-flex min-w-0 flex-1 items-center justify-center rounded-3xl bg-aira-navySoft px-5 py-3.5 text-center text-base font-bold text-white shadow-md transition hover:bg-aira-navy focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
               >
                 {label}
               </a>
@@ -154,6 +206,7 @@ export default function ProductModal({ product, onClose }) {
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

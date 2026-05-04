@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import { useAddSparkBurst } from "@/components/SparkBurstProvider";
 
 export default function WishlistGrid({ products, onOpen }) {
+  const addBurst = useAddSparkBurst();
+
   if (!products.length) {
     return (
-      <p className="rounded-3xl bg-white/60 px-6 py-12 text-center text-lg text-stone-500">
+      <p className="rounded-3xl border border-sky-100/50 bg-gradient-to-b from-white/85 to-sky-50/50 px-6 py-12 text-center text-lg font-medium text-slate-800 shadow-md shadow-sky-200/25 backdrop-blur-xl motion-reduce:from-white motion-reduce:to-white motion-reduce:backdrop-blur-none">
         Tidak ada produk di kategori ini.
       </p>
     );
@@ -17,10 +20,13 @@ export default function WishlistGrid({ products, onOpen }) {
         <button
           key={p.id}
           type="button"
-          onClick={() => onOpen(p)}
-          className="group flex flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/90 text-left shadow-md shadow-violet-100/80 ring-1 ring-violet-100/50 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-200/60 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-aira-yellow"
+          onClick={(e) => {
+            addBurst(e.clientX, e.clientY);
+            onOpen(p);
+          }}
+          className="group relative flex flex-col overflow-hidden rounded-3xl border border-sky-100/45 bg-gradient-to-b from-white/82 via-white/72 to-sky-50/40 text-left shadow-[0_8px_30px_-8px_rgba(56,189,248,0.18),inset_0_1px_0_0_rgba(255,255,255,0.75)] backdrop-blur-xl subpixel-antialiased transition duration-300 ease-out motion-reduce:from-white motion-reduce:via-white motion-reduce:to-white motion-reduce:shadow-md motion-reduce:backdrop-blur-none motion-reduce:transition-none hover:-translate-y-0.5 hover:border-sky-200/55 hover:from-white/88 hover:via-white/76 hover:to-sky-50/45 hover:shadow-[0_12px_36px_-10px_rgba(56,189,248,0.22),inset_0_1px_0_0_rgba(255,255,255,0.85)] focus:outline-none focus:ring-2 focus:ring-sky-400/90 focus:ring-offset-2 focus:ring-offset-aira-snow motion-reduce:hover:translate-y-0"
         >
-          <div className="relative aspect-square w-full overflow-hidden bg-aira-lavender/40">
+          <div className="relative z-0 aspect-square w-full overflow-hidden bg-gradient-to-b from-sky-50/40 to-white/25">
             {p.imageUrl ? (
               <Image
                 src={p.imageUrl}
@@ -31,24 +37,24 @@ export default function WishlistGrid({ products, onOpen }) {
                 unoptimized
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">
+              <div className="flex h-full w-full items-center justify-center text-sm font-medium text-slate-600">
                 No photo
               </div>
             )}
           </div>
-          <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-            <span className="font-display line-clamp-2 text-base font-semibold leading-snug text-stone-800 sm:text-lg">
+          <div className="relative z-10 flex flex-1 flex-col gap-1 border-t border-sky-100/50 bg-gradient-to-b from-white/78 to-sky-50/38 p-3 backdrop-blur-lg sm:p-4 motion-reduce:from-white motion-reduce:to-sky-50/70 motion-reduce:backdrop-blur-none">
+            <span className="font-display line-clamp-2 text-base font-bold leading-snug text-slate-950 sm:text-lg">
               {p.name}
             </span>
             {p.brand ? (
-              <span className="text-sm font-medium text-violet-700">
+              <span className="text-sm font-semibold text-slate-800">
                 {p.brand}
               </span>
             ) : null}
             {p.warna ? (
-              <span className="text-xs text-stone-500 sm:text-sm">{p.warna}</span>
+              <span className="text-xs text-slate-700 sm:text-sm">{p.warna}</span>
             ) : null}
-            <span className="mt-auto pt-1 text-sm font-bold text-emerald-800 sm:text-base">
+            <span className="mt-auto pt-1 text-sm font-extrabold text-slate-950 sm:text-base">
               {p.priceLabel}
             </span>
           </div>

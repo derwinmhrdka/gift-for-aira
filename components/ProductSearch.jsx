@@ -8,7 +8,7 @@ export default function ProductSearch({ value, onChange }) {
       </label>
       <div className="relative mx-auto max-w-2xl">
         <span
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
           aria-hidden
         >
           <svg
@@ -32,13 +32,13 @@ export default function ProductSearch({ value, onChange }) {
           onChange={(e) => onChange(e.target.value)}
           autoComplete="off"
           placeholder="Cari nama, merk, warna, deskripsi…"
-          className="font-display w-full rounded-3xl border border-white/80 bg-white/90 py-3.5 pl-12 pr-12 text-base text-stone-800 shadow-md shadow-violet-100/60 ring-1 ring-violet-100/40 placeholder:text-stone-400 focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-aira-yellow sm:py-4 sm:pl-14 sm:text-lg"
+          className="font-display w-full rounded-3xl border border-white/55 bg-white/72 py-3.5 pl-12 pr-12 text-base font-medium text-slate-950 shadow-md shadow-slate-300/25 backdrop-blur-md placeholder:text-slate-500 focus:border-sky-400/80 focus:bg-white/82 focus:outline-none focus:ring-2 focus:ring-sky-500/70 focus:ring-offset-2 focus:ring-offset-aira-snow sm:py-4 sm:pl-14 sm:text-lg motion-reduce:bg-white/95 motion-reduce:backdrop-blur-none"
         />
         {value ? (
           <button
             type="button"
             onClick={() => onChange("")}
-            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-500"
             aria-label="Hapus pencarian"
           >
             ✕

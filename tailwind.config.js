@@ -8,10 +8,12 @@ module.exports = {
     extend: {
       colors: {
         aira: {
-          yellow: "#FEF9C3",
-          pink: "#FCE7F3",
-          lavender: "#EDE9FE",
-          mint: "#D1FAE5",
+          snow: "#F4FAFF",
+          frost: "#E4EEF8",
+          ice: "#C5DDF0",
+          iceLight: "#EAF3FB",
+          navy: "#0F2744",
+          navySoft: "#1A3A5C",
         },
       },
       fontFamily: {
