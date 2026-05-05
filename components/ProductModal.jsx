@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProductImageCarousel from "@/components/ProductImageCarousel";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -100,20 +100,18 @@ export default function ProductModal({ product, onClose }) {
         </button>
 
         <div className="relative z-0 overflow-hidden rounded-3xl border border-white/70 bg-white/75 shadow-inner shadow-white/40 backdrop-blur-md motion-reduce:bg-white motion-reduce:backdrop-blur-none">
-          {product.imageUrl ? (
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              width={800}
-              height={600}
-              className="aspect-[4/3] w-full object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="flex aspect-[4/3] w-full items-center justify-center bg-slate-100 text-base font-medium text-slate-600">
-              No image
-            </div>
-          )}
+          <ProductImageCarousel
+            images={
+              product.imageUrls?.length
+                ? product.imageUrls
+                : product.imageUrl
+                  ? [product.imageUrl]
+                  : []
+            }
+            alt={product.name}
+            sizes="(max-width: 768px) 100vw, 512px"
+            aspectClassName="aspect-[4/3] w-full"
+          />
         </div>
 
         <h2
