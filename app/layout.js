@@ -9,8 +9,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: "Aira’s Baby Wishlist",
-  description: "Sweet picks for baby Aira — curated with love.",
+  title: "Mahardika’s Baby Wishlist",
+  description: "Sweet picks for Mahardika's baby — curated with love.",
 };
 
 export default function RootLayout({ children }) {
