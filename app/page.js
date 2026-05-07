@@ -6,6 +6,7 @@ import SafariWash from "@/components/SafariWash";
 import WinterMotifPattern from "@/components/WinterMotifPattern";
 import WishlistBoard from "@/components/WishlistBoard";
 import { getWishlistProducts } from "@/lib/airtable";
+import Link from "next/link";
 
 export const revalidate = 60;
 
@@ -51,6 +52,12 @@ export default async function Home() {
           >
             <p className="font-semibold">Tidak bisa memuat wishlist</p>
             <p className="mt-1 text-base opacity-90">{errorMessage}</p>
+            <Link
+              href="/"
+              className="mt-3 inline-flex rounded-2xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+            >
+              Coba lagi
+            </Link>
           </div>
         ) : (
           <WishlistBoard products={products} />

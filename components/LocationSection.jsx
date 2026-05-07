@@ -88,6 +88,9 @@ export default function LocationSection() {
               >
                 {copied ? "✓ Disalin" : "Salin alamat"}
               </button>
+              <p className="sr-only" role="status" aria-live="polite">
+                {copied ? "Alamat berhasil disalin." : ""}
+              </p>
             </div>
           </div>
         </div>

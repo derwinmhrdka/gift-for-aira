@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import AirtableImage from "@/components/AirtableImage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -69,13 +69,13 @@ export default function ProductImageCarousel({
   if (n === 1) {
     return (
       <div className={`relative overflow-hidden ${aspectClassName} ${className}`}>
-        <Image
+        <AirtableImage
           src={urls[0]}
           alt={alt}
           fill
           className="object-cover transition duration-300 group-hover:scale-105"
           sizes={sizes}
-          unoptimized
+          fallbackText="No photo"
         />
       </div>
     );
@@ -100,13 +100,13 @@ export default function ProductImageCarousel({
             className="relative h-full shrink-0 overflow-hidden"
             style={{ width: `${100 / n}%` }}
           >
-            <Image
+            <AirtableImage
               src={url}
               alt={`${alt} (${i + 1}/${n})`}
               fill
               className="object-cover transition duration-300 group-hover:scale-105"
               sizes={sizes}
-              unoptimized
+              fallbackText="No photo"
             />
           </div>
         ))}

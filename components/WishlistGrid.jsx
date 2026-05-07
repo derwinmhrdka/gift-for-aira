@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import AirtableImage from "@/components/AirtableImage";
 import { useAddSparkBurst } from "@/components/SparkBurstProvider";
 
 export default function WishlistGrid({ products, onOpen }) {
@@ -42,13 +42,13 @@ export default function WishlistGrid({ products, onOpen }) {
                 No photo
               </div>
             ) : (
-              <Image
+              <AirtableImage
                 src={thumb}
                 alt={p.name}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                 className="object-cover transition duration-300 group-hover:scale-105"
-                unoptimized
+                fallbackText="No photo"
               />
             )}
           </div>
