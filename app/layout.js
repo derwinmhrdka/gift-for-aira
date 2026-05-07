@@ -11,6 +11,18 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata = {
   title: "Mahardika’s Baby Wishlist",
   description: "Sweet picks for Mahardika's baby — curated with love.",
+  openGraph: {
+    title: "Mahardika’s Baby Wishlist",
+    description: "Sweet picks for Mahardika's baby — curated with love.",
+    images: ["/bg.jpg"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mahardika’s Baby Wishlist",
+    description: "Sweet picks for Mahardika's baby — curated with love.",
+    images: ["/bg.jpg"],
+  },
 };
 
 export default function RootLayout({ children }) {
