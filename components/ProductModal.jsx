@@ -89,7 +89,7 @@ export default function ProductModal({ product, onClose }) {
         aria-label="Tutup"
       />
       <div
-        className={`relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/70 bg-gradient-to-b from-white/96 via-white/94 to-sky-50/88 p-6 text-slate-800 shadow-[0_25px_60px_-15px_rgba(56,189,248,0.18),0_0_0_1px_rgba(255,255,255,0.65)_inset] shadow-sky-200/35 backdrop-blur-2xl subpixel-antialiased ring-1 ring-white/80 transition-[opacity,transform] ease-out motion-reduce:from-white motion-reduce:via-white motion-reduce:to-white motion-reduce:shadow-xl motion-reduce:ring-0 motion-reduce:transition-opacity motion-reduce:duration-150 ${panelClass}`}
+        className={`relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/70 bg-gradient-to-b from-white/96 via-white/94 to-sky-50/88 p-6 text-slate-800 shadow-[0_25px_60px_-15px_rgba(56,189,248,0.18),0_0_0_1px_rgba(255,255,255,0.65)_inset] shadow-sky-200/35 backdrop-blur-2xl subpixel-antialiased ring-1 ring-white/80 transition-[opacity,transform] ease-out motion-reduce:from-white motion-reduce:via-white motion-reduce:to-white motion-reduce:shadow-xl motion-reduce:ring-0 motion-reduce:transition-opacity motion-reduce:duration-150 lg:max-w-5xl lg:overflow-hidden lg:p-0 ${panelClass}`}
         style={{ transitionDuration: `${ANIM_MS}ms` }}
       >
         <button
@@ -101,27 +101,29 @@ export default function ProductModal({ product, onClose }) {
           ✕
         </button>
 
-        <div className="relative z-0 overflow-hidden rounded-3xl border border-white/70 bg-white/75 shadow-inner shadow-white/40 backdrop-blur-md motion-reduce:bg-white motion-reduce:backdrop-blur-none">
-          <ProductImageCarousel
-            images={
-              product.imageUrls?.length
-                ? product.imageUrls
-                : product.imageUrl
-                  ? [product.imageUrl]
-                  : []
-            }
-            alt={product.name}
-            sizes="(max-width: 768px) 100vw, 512px"
-            aspectClassName="aspect-[4/3] w-full"
-          />
-        </div>
+        <div className="lg:grid lg:max-h-[90vh] lg:grid-cols-[minmax(280px,42%)_1fr]">
+          <div className="relative z-0 overflow-hidden rounded-3xl border border-white/70 bg-white/75 shadow-inner shadow-white/40 backdrop-blur-md motion-reduce:bg-white motion-reduce:backdrop-blur-none lg:h-full lg:min-h-[560px] lg:rounded-none lg:rounded-l-3xl lg:border-y-0 lg:border-l-0 lg:border-r lg:border-white/50">
+            <ProductImageCarousel
+              images={
+                product.imageUrls?.length
+                  ? product.imageUrls
+                  : product.imageUrl
+                    ? [product.imageUrl]
+                    : []
+              }
+              alt={product.name}
+              sizes="(max-width: 1024px) 100vw, 40vw"
+              aspectClassName="aspect-[4/3] w-full lg:h-full lg:aspect-auto"
+            />
+          </div>
 
-        <h2
-          id="modal-title"
-          className="font-display mt-5 text-3xl font-bold tracking-tight text-aira-navy sm:text-4xl"
-        >
-          {product.name}
-        </h2>
+          <div className="lg:max-h-[90vh] lg:overflow-y-auto lg:px-8 lg:py-7">
+            <h2
+              id="modal-title"
+              className="font-display mt-5 text-3xl font-bold tracking-tight text-aira-navy sm:text-4xl lg:mt-0"
+            >
+              {product.name}
+            </h2>
         {product.brand ? (
           <p className="mt-2 text-base font-semibold text-sky-900 sm:text-lg">
             {product.brand}
@@ -209,10 +211,12 @@ export default function ProductModal({ product, onClose }) {
           href={similarSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-display mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-orange-300 bg-white/85 px-5 py-3 text-center text-sm font-bold text-orange-600 shadow-sm transition hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
+          className="font-display mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-orange-300 bg-white/85 px-5 py-3.5 text-center text-base font-bold text-orange-600 shadow-sm transition hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
         >
           Cari Produk Serupa
         </a>
+          </div>
+        </div>
       </div>
     </div>,
     document.body,

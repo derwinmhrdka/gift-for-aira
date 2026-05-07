@@ -119,7 +119,7 @@ export default function ProductImageCarousel({
             wrapClick(e);
             prev();
           }}
-          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-lg font-bold text-aira-navy shadow-md ring-1 ring-sky-100/80 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
+          className="pointer-events-auto h-7 w-7 text-lg font-bold leading-none text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)] transition hover:scale-105 hover:text-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
           aria-label="Foto sebelumnya"
         >
           ‹
@@ -130,7 +130,7 @@ export default function ProductImageCarousel({
             wrapClick(e);
             next();
           }}
-          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-lg font-bold text-aira-navy shadow-md ring-1 ring-sky-100/80 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
+          className="pointer-events-auto h-7 w-7 text-lg font-bold leading-none text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)] transition hover:scale-105 hover:text-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
           aria-label="Foto berikutnya"
         >
           ›
