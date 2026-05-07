@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CategoryPills from "./CategoryPills";
 import ProductModal from "./ProductModal";
 import ProductSearch from "./ProductSearch";
@@ -40,6 +40,7 @@ function productMatchesQuery(p, query) {
 }
 
 export default function WishlistBoard({ products }) {
+  const boardTopRef = useRef(null);
   const categories = useMemo(() => collectCategories(products), [products]);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -90,8 +91,19 @@ export default function WishlistBoard({ products }) {
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
 
+  const goToPage = useCallback((nextPage) => {
+    setPage(nextPage);
+    if (boardTopRef.current) {
+      boardTopRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, []);
+
   return (
     <>
+      <div ref={boardTopRef} />
       <ProductSearch value={search} onChange={setSearch} />
       <CategoryPills
         categories={categories}
@@ -104,7 +116,7 @@ export default function WishlistBoard({ products }) {
           <div className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/72 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur-sm">
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => goToPage(Math.max(1, page - 1))}
               disabled={page <= 1}
               className="h-6 w-6 rounded-full text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Halaman sebelumnya"
@@ -116,7 +128,7 @@ export default function WishlistBoard({ products }) {
             </span>
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => goToPage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages}
               className="h-6 w-6 rounded-full text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Halaman berikutnya"
