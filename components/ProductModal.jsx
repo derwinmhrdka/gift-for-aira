@@ -71,6 +71,8 @@ export default function ProductModal({ product, onClose }) {
   const panelClass = panelOpen
     ? "translate-y-0 opacity-100 sm:translate-y-0 sm:scale-100 motion-reduce:translate-y-0 motion-reduce:scale-100"
     : "translate-y-[min(100%,5.5rem)] opacity-0 sm:translate-y-6 sm:scale-[0.96] motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:opacity-0";
+  const similarKeyword = [product.name, product.brand].filter(Boolean).join(" ");
+  const similarSearchUrl = `https://shopee.co.id/search?keyword=${encodeURIComponent(similarKeyword)}`;
 
   return createPortal(
     <div
@@ -203,6 +205,14 @@ export default function ProductModal({ product, onClose }) {
             );
           })}
         </div>
+        <a
+          href={similarSearchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-display mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-orange-300 bg-white/85 px-5 py-3 text-center text-sm font-bold text-orange-600 shadow-sm transition hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
+        >
+          Cari Produk Serupa
+        </a>
       </div>
     </div>,
     document.body,

@@ -1,4 +1,5 @@
 import BankTransferSection from "@/components/BankTransferSection";
+import ConfirmationSection from "@/components/ConfirmationSection";
 import LocationSection from "@/components/LocationSection";
 import LocationWash from "@/components/LocationWash";
 import { SparkBurstProvider } from "@/components/SparkBurstProvider";
@@ -75,6 +76,10 @@ export default async function Home() {
           <div className="relative z-10">
             <LocationSection />
           </div>
+        </div>
+
+        <div className="relative z-10 mt-12 sm:mt-14">
+          <ConfirmationSection />
         </div>
       </div>
       </SparkBurstProvider>
