@@ -277,13 +277,16 @@ export default function ProductModal({ product, onClose, onMarkedDone }) {
 
         {confirmOpen ? (
           <div
-            className="absolute inset-0 z-[80] flex items-center justify-center rounded-3xl bg-white p-6 lg:rounded-3xl"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="confirm-gift-title"
-            aria-describedby="confirm-gift-desc"
+            className="absolute inset-0 z-[80] flex items-center justify-center rounded-3xl bg-slate-900/40 p-6 lg:rounded-3xl"
+            role="presentation"
           >
-            <div className="w-full max-w-sm rounded-3xl border border-sky-100 bg-white p-6 text-center shadow-lg shadow-sky-100/50">
+            <div
+              className="w-full max-w-sm rounded-3xl border border-sky-100 bg-white p-6 text-center shadow-xl"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="confirm-gift-title"
+              aria-describedby="confirm-gift-desc"
+            >
               <h3
                 id="confirm-gift-title"
                 className="font-display text-xl font-bold text-aira-navy"
