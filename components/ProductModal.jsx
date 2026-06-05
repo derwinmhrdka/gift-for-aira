@@ -1,5 +1,6 @@
 "use client";
 
+import GiftThankYouPopup from "@/components/GiftThankYouPopup";
 import ProductImageCarousel from "@/components/ProductImageCarousel";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -9,6 +10,7 @@ const ANIM_MS = 300;
 export default function ProductModal({ product, onClose, onMarkedDone }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState("");
   const closeTimerRef = useRef(null);
@@ -30,6 +32,7 @@ export default function ProductModal({ product, onClose, onMarkedDone }) {
       return undefined;
     }
     setConfirmOpen(false);
+    setThankYouOpen(false);
     setMarking(false);
     setMarkError("");
     setPanelOpen(false);
@@ -95,6 +98,7 @@ export default function ProductModal({ product, onClose, onMarkedDone }) {
       }
       onMarkedDone?.(product.id);
       setConfirmOpen(false);
+      setThankYouOpen(true);
     } catch (e) {
       setMarkError(e instanceof Error ? e.message : "Gagal memilih produk.");
     } finally {
@@ -102,7 +106,9 @@ export default function ProductModal({ product, onClose, onMarkedDone }) {
     }
   }
 
-  return createPortal(
+  return (
+    <>
+    {createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
       role="dialog"
@@ -323,5 +329,11 @@ export default function ProductModal({ product, onClose, onMarkedDone }) {
       </div>
     </div>,
     document.body,
+  )}
+    <GiftThankYouPopup
+      open={thankYouOpen}
+      onClose={() => setThankYouOpen(false)}
+    />
+    </>
   );
 }
