@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CategoryPills from "./CategoryPills";
 import ProductModal from "./ProductModal";
 import ProductSearch from "./ProductSearch";
+import ProductSortButton from "./ProductSortButton";
 import WishlistGrid from "./WishlistGrid";
+import { sortProductsByPrice } from "@/lib/productPrice";
 
 const PAGE_SIZE = 10;
 const DESKTOP_PAGE_SIZE = 20;
@@ -45,6 +47,7 @@ export default function WishlistBoard({ products: initialProducts }) {
   const categories = useMemo(() => collectCategories(products), [products]);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [priceSort, setPriceSort] = useState("desc");
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
@@ -75,8 +78,9 @@ export default function WishlistBoard({ products: initialProducts }) {
   }, [products, filter]);
 
   const filtered = useMemo(() => {
-    return filteredByCategory.filter((p) => productMatchesQuery(p, search));
-  }, [filteredByCategory, search]);
+    const list = filteredByCategory.filter((p) => productMatchesQuery(p, search));
+    return sortProductsByPrice(list, priceSort);
+  }, [filteredByCategory, search, priceSort]);
 
   useEffect(() => {
     const updatePageSize = () => {
@@ -92,7 +96,7 @@ export default function WishlistBoard({ products: initialProducts }) {
 
   useEffect(() => {
     setPage(1);
-  }, [filter, search]);
+  }, [filter, search, priceSort]);
 
   useEffect(() => {
     setPage((p) => Math.min(p, totalPages));
@@ -116,7 +120,14 @@ export default function WishlistBoard({ products: initialProducts }) {
   return (
     <>
       <div ref={boardTopRef} />
-      <ProductSearch value={search} onChange={setSearch} />
+      <div className="mb-6 flex w-full items-stretch gap-2 sm:mx-auto sm:mb-8 sm:max-w-2xl">
+        <ProductSearch
+          value={search}
+          onChange={setSearch}
+          className="min-w-0 flex-1"
+        />
+        <ProductSortButton value={priceSort} onChange={setPriceSort} />
+      </div>
       <CategoryPills
         categories={categories}
         active={filter}

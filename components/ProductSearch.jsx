@@ -1,8 +1,8 @@
 "use client";
 
-export default function ProductSearch({ value, onChange }) {
+export default function ProductSearch({ value, onChange, className = "" }) {
   return (
-    <div className="mb-6 w-full sm:mb-8">
+    <div className={`w-full ${className}`.trim()}>
       <label htmlFor="product-search" className="sr-only">
         Cari produk
       </label>
