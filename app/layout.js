@@ -11,7 +11,13 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+function siteUrl() {
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
 export const metadata = {
+  metadataBase: new URL(siteUrl()),
   title: "Mahardika’s Baby Wishlist",
   description: "Sweet picks for Mahardika's baby — curated with love.",
   icons: {
@@ -22,14 +28,14 @@ export const metadata = {
   openGraph: {
     title: "Mahardika’s Baby Wishlist",
     description: "Sweet picks for Mahardika's baby — curated with love.",
-    images: ["/bg.jpg"],
     type: "website",
+    locale: "id_ID",
+    siteName: "Mahardika’s Baby Wishlist",
   },
   twitter: {
     card: "summary_large_image",
     title: "Mahardika’s Baby Wishlist",
     description: "Sweet picks for Mahardika's baby — curated with love.",
-    images: ["/bg.jpg"],
   },
 };
 

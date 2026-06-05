@@ -74,26 +74,33 @@ export default function BackgroundMusicButton() {
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) return undefined;
     audio.volume = 0.5;
     audio.muted = false;
     setReady(true);
 
-    const tryAutoPlay = async () => {
+    const tryPlay = async () => {
+      if (audio.muted) return;
       try {
         await audio.play();
       } catch {
-        audio.muted = true;
-        setMuted(true);
-        try {
-          await audio.play();
-        } catch {
-          // iOS/Android may still require user interaction.
-        }
+        // Browser may block until the first tap/click.
       }
     };
 
-    tryAutoPlay();
+    tryPlay();
+
+    const unlockOnGesture = () => {
+      tryPlay();
+    };
+
+    document.addEventListener("click", unlockOnGesture);
+    document.addEventListener("touchstart", unlockOnGesture, { passive: true });
+
+    return () => {
+      document.removeEventListener("click", unlockOnGesture);
+      document.removeEventListener("touchstart", unlockOnGesture);
+    };
   }, []);
 
   const toggleMute = async () => {
