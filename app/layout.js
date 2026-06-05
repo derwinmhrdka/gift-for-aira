@@ -12,7 +12,13 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 function siteUrl() {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (production) {
+    const host = production.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return `https://${host}`;
+  }
+  const deployment = process.env.VERCEL_URL?.trim();
+  if (deployment) return `https://${deployment.replace(/\/$/, "")}`;
   return "http://localhost:3000";
 }
 
@@ -31,6 +37,7 @@ export const metadata = {
     type: "website",
     locale: "id_ID",
     siteName: "Mahardika’s Baby Wishlist",
+    url: siteUrl(),
   },
   twitter: {
     card: "summary_large_image",
