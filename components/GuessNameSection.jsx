@@ -220,7 +220,7 @@ export default function GuessNameSection() {
                 value={guess}
                 onChange={(e) => handleInputChange(e.target.value)}
                 autoComplete="off"
-                placeholder="Contoh: Aira Mahardika"
+                placeholder="Ketik nama disini..."
                 className="font-display w-full rounded-2xl border border-sky-200/80 bg-white/90 px-4 py-3 text-base font-semibold text-aira-navy shadow-inner placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-300/70"
               />
             </div>
