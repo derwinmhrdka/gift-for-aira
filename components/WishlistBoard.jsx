@@ -39,7 +39,8 @@ function productMatchesQuery(p, query) {
   return parts.some((t) => t.includes(q));
 }
 
-export default function WishlistBoard({ products }) {
+export default function WishlistBoard({ products: initialProducts }) {
+  const [products, setProducts] = useState(initialProducts);
   const boardTopRef = useRef(null);
   const categories = useMemo(() => collectCategories(products), [products]);
   const [filter, setFilter] = useState("all");
@@ -48,9 +49,20 @@ export default function WishlistBoard({ products }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
   const handleCloseModal = useCallback(() => {
     document.body.style.removeProperty("overflow");
     setSelected(null);
+  }, []);
+
+  const handleProductDone = useCallback((id) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, done: true } : p)),
+    );
+    setSelected((prev) => (prev?.id === id ? { ...prev, done: true } : prev));
   }, []);
 
   const filteredByCategory = useMemo(() => {
@@ -142,6 +154,7 @@ export default function WishlistBoard({ products }) {
         key={selected?.id ?? "closed"}
         product={selected}
         onClose={handleCloseModal}
+        onMarkedDone={handleProductDone}
       />
     </>
   );

@@ -6,8 +6,11 @@ import { createPortal } from "react-dom";
 
 const ANIM_MS = 300;
 
-export default function ProductModal({ product, onClose }) {
+export default function ProductModal({ product, onClose, onMarkedDone }) {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState("");
   const closeTimerRef = useRef(null);
   const rafRef = useRef(null);
 
@@ -26,6 +29,9 @@ export default function ProductModal({ product, onClose }) {
       rafRef.current = null;
       return undefined;
     }
+    setConfirmOpen(false);
+    setMarking(false);
+    setMarkError("");
     setPanelOpen(false);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
@@ -73,6 +79,28 @@ export default function ProductModal({ product, onClose }) {
     : "translate-y-[min(100%,5.5rem)] opacity-0 sm:translate-y-6 sm:scale-[0.96] motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:opacity-0";
   const similarKeyword = [product.name, product.brand].filter(Boolean).join(" ");
   const similarSearchUrl = `https://shopee.co.id/search?keyword=${encodeURIComponent(similarKeyword)}`;
+  const unavailable = product.done === true;
+
+  async function confirmMarkDone() {
+    if (unavailable || marking) return;
+    setMarking(true);
+    setMarkError("");
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(product.id)}/done`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal memilih produk.");
+      }
+      onMarkedDone?.(product.id);
+      setConfirmOpen(false);
+    } catch (e) {
+      setMarkError(e instanceof Error ? e.message : "Gagal memilih produk.");
+    } finally {
+      setMarking(false);
+    }
+  }
 
   return createPortal(
     <div
@@ -103,6 +131,14 @@ export default function ProductModal({ product, onClose }) {
 
         <div className="lg:grid lg:max-h-[90vh] lg:grid-cols-[minmax(280px,42%)_1fr]">
           <div className="relative z-0 overflow-hidden rounded-3xl border border-white/70 bg-white/75 shadow-inner shadow-white/40 backdrop-blur-md motion-reduce:bg-white motion-reduce:backdrop-blur-none lg:h-full lg:min-h-[560px] lg:rounded-none lg:rounded-l-3xl lg:border-y-0 lg:border-l-0 lg:border-r lg:border-white/50">
+            {unavailable ? (
+              <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-slate-900/20 lg:rounded-l-3xl">
+                <span className="rounded-full border border-white/70 bg-white/92 px-4 py-2 text-sm font-bold uppercase tracking-wide text-slate-800 shadow-md">
+                  Unavailable
+                </span>
+              </div>
+            ) : null}
+            <div className={unavailable ? "h-full grayscale blur-[2px]" : "h-full"}>
             <ProductImageCarousel
               images={
                 product.imageUrls?.length
@@ -115,6 +151,7 @@ export default function ProductModal({ product, onClose }) {
               sizes="(max-width: 1024px) 100vw, 40vw"
               aspectClassName="aspect-[4/3] w-full lg:h-full lg:aspect-auto"
             />
+            </div>
           </div>
 
           <div className="lg:max-h-[90vh] lg:overflow-y-auto lg:px-8 lg:py-7">
@@ -215,8 +252,71 @@ export default function ProductModal({ product, onClose }) {
         >
           Cari Produk Serupa
         </a>
+        {unavailable ? (
+          <p className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-3 text-center text-sm font-semibold text-slate-600">
+            Produk ini sudah dipilih sebagai hadiah.
+          </p>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              className="font-display mt-3 inline-flex w-full items-center justify-center rounded-3xl bg-aira-navy px-5 py-3.5 text-center text-base font-bold text-white shadow-md transition hover:bg-aira-navySoft focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
+            >
+              Pilih sebagai hadiah
+            </button>
+            {markError ? (
+              <p className="mt-2 text-center text-sm font-medium text-red-700" role="alert">
+                {markError}
+              </p>
+            ) : null}
+          </>
+        )}
           </div>
         </div>
+
+        {confirmOpen ? (
+          <div
+            className="absolute inset-0 z-[80] flex items-center justify-center rounded-3xl bg-slate-900/35 p-6 backdrop-blur-sm lg:rounded-3xl"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-gift-title"
+            aria-describedby="confirm-gift-desc"
+          >
+            <div className="w-full max-w-sm rounded-3xl border border-white/80 bg-white/98 p-6 text-center shadow-xl shadow-sky-200/30">
+              <h3
+                id="confirm-gift-title"
+                className="font-display text-xl font-bold text-aira-navy"
+              >
+                Pilih produk ini sebagai hadiah?
+              </h3>
+              <p
+                id="confirm-gift-desc"
+                className="mt-2 text-sm leading-relaxed text-slate-600"
+              >
+                Produk yang sudah dipilih akan tidak tersedia pada list hadiah
+              </p>
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={marking}
+                  className="font-display inline-flex flex-1 items-center justify-center rounded-3xl border border-sky-200 bg-white px-5 py-3 text-base font-bold text-slate-700 transition hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2 disabled:opacity-60"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmMarkDone}
+                  disabled={marking}
+                  className="font-display inline-flex flex-1 items-center justify-center rounded-3xl bg-aira-navy px-5 py-3 text-base font-bold text-white shadow-md transition hover:bg-aira-navySoft focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 disabled:opacity-60"
+                >
+                  {marking ? "Menyimpan…" : "Ya"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body,
