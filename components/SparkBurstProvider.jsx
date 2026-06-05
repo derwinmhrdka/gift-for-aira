@@ -9,17 +9,23 @@ import {
 } from "react";
 import SparkBurstPortal from "@/components/SparkBurstPortal";
 
-function makeParticles() {
-  const n = 20;
+function makeParticles({ snowHeavy = false } = {}) {
+  const n = snowHeavy ? 28 : 20;
   return Array.from({ length: n }, (_, i) => {
     const angle = (Math.PI * 2 * i) / n + (Math.random() - 0.5) * 0.5;
-    const dist = 22 + Math.random() * 50;
+    const dist = snowHeavy ? 28 + Math.random() * 58 : 22 + Math.random() * 50;
     return {
       dx: Math.cos(angle) * dist,
       dy: Math.sin(angle) * dist,
       delay: Math.floor(Math.random() * 130),
-      size: 2 + Math.random() * 4,
-      kind: Math.random() > 0.78 ? "snow" : "glow",
+      size: snowHeavy ? 3 + Math.random() * 5 : 2 + Math.random() * 4,
+      kind: snowHeavy
+        ? Math.random() > 0.2
+          ? "snow"
+          : "glow"
+        : Math.random() > 0.78
+          ? "snow"
+          : "glow",
     };
   });
 }
@@ -29,7 +35,7 @@ const SparkBurstContext = createContext(null);
 export function SparkBurstProvider({ children }) {
   const [bursts, setBursts] = useState([]);
 
-  const addBurst = useCallback((clientX, clientY) => {
+  const addBurst = useCallback((clientX, clientY, options = {}) => {
     if (typeof window === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -40,7 +46,13 @@ export function SparkBurstProvider({ children }) {
 
     setBursts((s) => [
       ...s,
-      { id, x: clientX, y: clientY, particles: makeParticles() },
+      {
+        id,
+        x: clientX,
+        y: clientY,
+        snowHeavy: Boolean(options.snowHeavy),
+        particles: makeParticles(options),
+      },
     ]);
 
     window.setTimeout(() => {

@@ -7,6 +7,7 @@ import { SparkBurstProvider } from "@/components/SparkBurstProvider";
 import SafariWash from "@/components/SafariWash";
 import WinterMotifPattern from "@/components/WinterMotifPattern";
 import WishlistBoard from "@/components/WishlistBoard";
+import WishlistSplashPreload from "@/components/WishlistSplashPreload";
 import { getWishlistProducts } from "@/lib/airtable";
 import Link from "next/link";
 
@@ -24,6 +25,7 @@ export default async function Home() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-aira-snow via-white to-aira-iceLight [overflow-x:clip]">
+      <WishlistSplashPreload products={products} />
       <WinterMotifPattern />
       <SparkBurstProvider>
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">

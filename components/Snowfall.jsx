@@ -104,7 +104,7 @@ function SnowflakeGlyph({ variant, size }) {
 export default function Snowfall() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-[15] overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[300] overflow-hidden"
       aria-hidden
     >
       {FLAKES.map((f) => (

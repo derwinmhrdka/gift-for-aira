@@ -117,10 +117,10 @@ function GuessPopup({ type, onClose }) {
 
   const content =
     type === "success"
-      ? { title: "Sstt...", desc: "Kamu benar, jangan bilang siapa-siapa ya!" }
+      ? { title: "Sstt... 🤫", desc: "Kamu benar, jangan bilang siapa-siapa ya!" }
       : type === "close"
-        ? { title: "Hampir!", desc: "Sedikit lagi, coba lagi ya." }
-        : { title: "Coba lagi", desc: "Belum tepat, tebak sekali lagi." };
+        ? { title: "Hampir! 🤭", desc: "Sedikit lagi, coba lagi ya." }
+        : { title: "Coba lagi 😂", desc: "Belum tepat, tebak sekali lagi." };
 
   return createPortal(
     <div
@@ -136,12 +136,9 @@ function GuessPopup({ type, onClose }) {
         aria-label="Tutup"
       />
       <div className="relative w-full max-w-sm rounded-3xl border border-sky-100 bg-white px-8 py-8 text-center shadow-xl">
-        <p className="text-4xl" aria-hidden>
-          {type === "success" ? "🤫" : type === "close" ? "🤭" : "😂"}
-        </p>
         <h3
           id="guess-popup-title"
-          className="font-display mt-3 text-2xl font-bold text-aira-navy sm:text-3xl"
+          className="font-display text-2xl font-bold text-aira-navy sm:text-3xl"
         >
           {content.title}
         </h3>
@@ -204,7 +201,7 @@ export default function GuessNameSection() {
             Guess my name?
           </h2>
           <p className="mt-2 text-base text-slate-600 sm:text-lg">
-            Ketik namaku yuk! Pisahkan dengan spasi.
+            Tebak namaku yuk biar seru!
           </p>
 
           <div className="mt-6 space-y-3 sm:space-y-4">

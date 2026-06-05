@@ -8,7 +8,7 @@ export default function SparkBurstPortal({ bursts }) {
 
   return createPortal(
     <div
-      className="pointer-events-none fixed inset-0 z-[220] overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[290] overflow-hidden"
       aria-hidden
     >
       {bursts.flatMap((b) =>
@@ -17,11 +17,15 @@ export default function SparkBurstPortal({ bursts }) {
             return (
               <span
                 key={`${b.id}-sn-${i}`}
-                className="aira-flake absolute select-none text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.95)] motion-reduce:hidden"
+                className={`aira-flake absolute select-none motion-reduce:hidden ${
+                  b.snowHeavy
+                    ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.95)]"
+                    : "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.95)]"
+                }`}
                 style={{
                   left: b.x,
                   top: b.y,
-                  fontSize: `${6 + (i % 3)}px`,
+                  fontSize: `${(b.snowHeavy ? 9 : 6) + (i % 3)}px`,
                   lineHeight: 1,
                   "--dx": `${p.dx * 0.85}px`,
                   "--dy": `${p.dy * 0.85}px`,
@@ -35,7 +39,11 @@ export default function SparkBurstPortal({ bursts }) {
           return (
             <span
               key={`${b.id}-gl-${i}`}
-              className="aira-spark-dot absolute rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.85)] motion-reduce:hidden"
+              className={`aira-spark-dot absolute rounded-full motion-reduce:hidden ${
+                b.snowHeavy
+                  ? "bg-sky-300 shadow-[0_0_14px_5px_rgba(56,189,248,0.75)]"
+                  : "bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.85)]"
+              }`}
               style={{
                 left: b.x,
                 top: b.y,

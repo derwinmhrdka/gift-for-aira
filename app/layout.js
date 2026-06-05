@@ -1,5 +1,6 @@
 import BackgroundMusicButton from "@/components/BackgroundMusicButton";
 import FloatingSnowman from "@/components/FloatingSnowman";
+import { SplashScreenProvider } from "@/components/SplashScreen";
 import Snowfall from "@/components/Snowfall";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -52,10 +53,12 @@ export default function RootLayout({ children }) {
       <body
         className={`${jakarta.variable} font-sans text-lg leading-relaxed antialiased`}
       >
-        <Snowfall />
-        <FloatingSnowman />
-        <BackgroundMusicButton />
-        {children}
+        <SplashScreenProvider>
+          <Snowfall />
+          <FloatingSnowman />
+          <BackgroundMusicButton />
+          {children}
+        </SplashScreenProvider>
       </body>
     </html>
   );
