@@ -1,3 +1,5 @@
+import BackgroundMusicButton from "@/components/BackgroundMusicButton";
+import FloatingSnowman from "@/components/FloatingSnowman";
 import Snowfall from "@/components/Snowfall";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -12,6 +14,11 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata = {
   title: "Mahardika’s Baby Wishlist",
   description: "Sweet picks for Mahardika's baby — curated with love.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
     title: "Mahardika’s Baby Wishlist",
     description: "Sweet picks for Mahardika's baby — curated with love.",
@@ -33,6 +40,8 @@ export default function RootLayout({ children }) {
         className={`${jakarta.variable} font-sans text-lg leading-relaxed antialiased`}
       >
         <Snowfall />
+        <FloatingSnowman />
+        <BackgroundMusicButton />
         {children}
       </body>
     </html>

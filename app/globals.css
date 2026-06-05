@@ -77,11 +77,73 @@ body {
   height: 100%;
 }
 
+@keyframes aira-music-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-6deg);
+  }
+}
+
+.aira-music-icon-active {
+  animation: aira-music-float 1.8s ease-in-out infinite;
+}
+
+.aira-music-waves {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.group:hover .aira-music-waves {
+  opacity: 1;
+}
+
+.group:hover .aira-music-waves path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aira-music-wave 0.85s ease-in-out infinite;
+}
+
+.group:hover .aira-music-waves path:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.group:hover .aira-music-waves path:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.group:hover .aira-music-waves path:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+@keyframes aira-music-wave {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scaleY(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aira-spark-dot,
   .aira-flake,
   .aira-snowflake {
     animation: none !important;
     opacity: 0 !important;
+  }
+
+  .aira-music-icon-active,
+  .group:hover .aira-music-waves path {
+    animation: none !important;
+  }
+
+  .group:hover .aira-music-waves {
+    opacity: 1;
   }
 }
