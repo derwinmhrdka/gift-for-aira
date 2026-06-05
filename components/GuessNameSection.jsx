@@ -2,9 +2,8 @@
 
 import { useAddSparkBurst } from "@/components/SparkBurstProvider";
 import {
-  createRevealState,
+  boxStatesFromGuess,
   evaluateGuessFeedback,
-  revealedFromGuess,
   splitGuessInput,
 } from "@/lib/nameGuess";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -39,23 +38,37 @@ function playShushSound() {
   }
 }
 
-function LetterBox({ char, open, onBurst }) {
+function LetterBox({ state, letter, onBurst }) {
   const ref = useRef(null);
-  const wasOpen = useRef(open);
+  const wasCorrect = useRef(state === "correct");
 
   useEffect(() => {
-    if (open && !wasOpen.current && ref.current) {
+    const isCorrect = state === "correct";
+    if (isCorrect && !wasCorrect.current && ref.current) {
       const rect = ref.current.getBoundingClientRect();
       onBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
     }
-    wasOpen.current = open;
-  }, [open, onBurst]);
+    wasCorrect.current = isCorrect;
+  }, [state, onBurst]);
+
+  if (state === "wrong") {
+    return (
+      <div
+        ref={ref}
+        className="aira-letter-box h-7 w-6 shrink-0 rounded-lg sm:h-8 sm:w-7 sm:rounded-xl"
+      >
+        <div className="aira-letter-wrong font-display text-sm font-extrabold sm:text-base">
+          {(letter ?? "?").toUpperCase()}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       ref={ref}
       className={`aira-letter-box h-7 w-6 shrink-0 rounded-lg sm:h-8 sm:w-7 sm:rounded-xl ${
-        open ? "is-open" : ""
+        state === "correct" ? "is-open" : ""
       }`}
     >
       <div className="aira-letter-flip">
@@ -63,24 +76,24 @@ function LetterBox({ char, open, onBurst }) {
           ?
         </div>
         <div className="aira-letter-face aira-letter-back font-display text-sm font-extrabold sm:text-base">
-          {char.toUpperCase()}
+          {(letter ?? "?").toUpperCase()}
         </div>
       </div>
     </div>
   );
 }
 
-function LetterBoxes({ rowId, name, revealed, nowrap, onBurst }) {
-  if (!name) return null;
+function LetterBoxes({ rowId, boxes, nowrap, onBurst }) {
+  if (!boxes.length) return null;
   return (
     <div
       className={`flex justify-center gap-0.5 sm:gap-1 ${nowrap ? "flex-nowrap" : "flex-wrap"}`}
     >
-      {name.split("").map((char, index) => (
+      {boxes.map((box, index) => (
         <LetterBox
           key={`${rowId}-${index}`}
-          char={char}
-          open={revealed[index]}
+          state={box.state}
+          letter={box.letter}
           onBurst={onBurst}
         />
       ))}
@@ -104,10 +117,10 @@ function GuessPopup({ type, onClose }) {
 
   const content =
     type === "success"
-      ? { title: "Sstt... 🤫", desc: "Kamu benar, jangan bilang siapa-siapa ya!" }
+      ? { title: "Sstt...", desc: "Kamu benar, jangan bilang siapa-siapa ya!" }
       : type === "close"
-        ? { title: "Hampir! :o", desc: "Sedikit lagi, coba lagi ya." }
-        : { title: "Coba lagi 😂", desc: "Belum tepat, tebak sekali lagi." };
+        ? { title: "Hampir!", desc: "Sedikit lagi, coba lagi ya." }
+        : { title: "Coba lagi", desc: "Belum tepat, tebak sekali lagi." };
 
   return createPortal(
     <div
@@ -124,7 +137,7 @@ function GuessPopup({ type, onClose }) {
       />
       <div className="relative w-full max-w-sm rounded-3xl border border-sky-100 bg-white px-8 py-8 text-center shadow-xl">
         <p className="text-4xl" aria-hidden>
-          {type === "success" ? "🤫" : type === "close" ? "😮" : "😂"}
+          {type === "success" ? "🤫" : type === "close" ? "🤭" : "😂"}
         </p>
         <h3
           id="guess-popup-title"
@@ -143,16 +156,14 @@ export default function GuessNameSection() {
   const firstName = process.env.NEXT_PUBLIC_BABY_FIRST_NAME?.trim() ?? "";
   const lastName = process.env.NEXT_PUBLIC_BABY_LAST_NAME?.trim() ?? "";
 
-  const [revealedFirst, setRevealedFirst] = useState(() =>
-    createRevealState(firstName.length),
-  );
-  const [revealedLast, setRevealedLast] = useState(() =>
-    createRevealState(lastName.length),
-  );
   const [guess, setGuess] = useState("");
   const [popup, setPopup] = useState(null);
   const [won, setWon] = useState(false);
   const addBurst = useAddSparkBurst();
+
+  const { first, last } = splitGuessInput(guess);
+  const firstBoxes = boxStatesFromGuess(first, firstName);
+  const lastBoxes = boxStatesFromGuess(last, lastName);
 
   const closePopup = useCallback(() => setPopup(null), []);
 
@@ -161,12 +172,15 @@ export default function GuessNameSection() {
       if (won) return;
 
       setGuess(value);
-      const { first, last } = splitGuessInput(value);
+      const { first: nextFirst, last: nextLast } = splitGuessInput(value);
 
-      setRevealedFirst(revealedFromGuess(first, firstName));
-      setRevealedLast(revealedFromGuess(last, lastName));
+      const feedback = evaluateGuessFeedback(
+        nextFirst,
+        nextLast,
+        firstName,
+        lastName,
+      );
 
-      const feedback = evaluateGuessFeedback(first, last, firstName, lastName);
       if (feedback === "success") {
         setWon(true);
         setPopup("success");
@@ -196,17 +210,11 @@ export default function GuessNameSection() {
           <div className="mt-6 space-y-3 sm:space-y-4">
             <LetterBoxes
               rowId="first"
-              name={firstName}
-              revealed={revealedFirst}
+              boxes={firstBoxes}
               nowrap
               onBurst={addBurst}
             />
-            <LetterBoxes
-              rowId="last"
-              name={lastName}
-              revealed={revealedLast}
-              onBurst={addBurst}
-            />
+            <LetterBoxes rowId="last" boxes={lastBoxes} onBurst={addBurst} />
           </div>
 
           {!won ? (
