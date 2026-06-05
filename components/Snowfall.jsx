@@ -3,23 +3,23 @@
  * Deterministik (tanpa Math.random) agar konsisten SSR/CSR.
  */
 
-const COUNT = 42;
+const COUNT = 56;
 
 function buildFlakes() {
   return Array.from({ length: COUNT }, (_, i) => {
     const left = ((i * 41 + 11) % 98) + 1;
     const thin = i % 3 !== 0;
-    const width = thin ? 1.2 + (i % 3) * 0.35 : 2 + (i % 4) * 0.4;
-    const height = thin ? 3.5 + (i % 5) * 0.9 : width;
+    const width = thin ? 2 + (i % 3) * 0.6 : 3 + (i % 4) * 0.5;
+    const height = thin ? 5 + (i % 5) * 1.2 : width;
     const rotate = (i * 23 + 7) % 180;
-    const duration = 16 + (i % 14) * 2.2;
+    const duration = 12 + (i % 12) * 1.8;
     const delay = -((i * 2.37) % duration);
-    const opacity = 0.22 + (i % 6) * 0.05;
+    const opacity = 0.5 + (i % 5) * 0.08;
     const sway = [
-      ((i * 5 + 3) % 28) - 14,
-      ((i * 9 + 1) % 42) - 21,
-      ((i * 13 + 5) % 36) - 18,
-      ((i * 7 + 2) % 48) - 24,
+      ((i * 5 + 3) % 36) - 18,
+      ((i * 9 + 1) % 52) - 26,
+      ((i * 13 + 5) % 44) - 22,
+      ((i * 7 + 2) % 60) - 30,
     ];
     return {
       key: i,
@@ -40,7 +40,7 @@ const FLAKES = buildFlakes();
 export default function Snowfall() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-[3] overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[15] overflow-hidden"
       aria-hidden
     >
       {FLAKES.map((f) => (

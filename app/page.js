@@ -4,7 +4,6 @@ import LocationSection from "@/components/LocationSection";
 import LocationWash from "@/components/LocationWash";
 import { SparkBurstProvider } from "@/components/SparkBurstProvider";
 import SafariWash from "@/components/SafariWash";
-import Snowfall from "@/components/Snowfall";
 import WinterMotifPattern from "@/components/WinterMotifPattern";
 import WishlistBoard from "@/components/WishlistBoard";
 import { getWishlistProducts } from "@/lib/airtable";
@@ -25,7 +24,6 @@ export default async function Home() {
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-aira-snow via-white to-aira-iceLight [overflow-x:clip]">
       <WinterMotifPattern />
-      <Snowfall />
       <SparkBurstProvider>
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <header className="relative isolate mb-12 overflow-hidden rounded-3xl px-4 py-8 text-center sm:px-6 sm:py-10">

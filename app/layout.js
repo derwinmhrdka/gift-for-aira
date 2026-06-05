@@ -1,3 +1,4 @@
+import Snowfall from "@/components/Snowfall";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${jakarta.variable} font-sans text-lg leading-relaxed antialiased`}
       >
+        <Snowfall />
         {children}
       </body>
     </html>
