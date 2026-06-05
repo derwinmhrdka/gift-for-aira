@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import GiftThankYouPopup from "./GiftThankYouPopup";
 import CategoryPills from "./CategoryPills";
 import ProductModal from "./ProductModal";
 import ProductSearch from "./ProductSearch";
@@ -49,6 +50,7 @@ export default function WishlistBoard({ products: initialProducts }) {
   const [search, setSearch] = useState("");
   const [priceSort, setPriceSort] = useState("desc");
   const [selected, setSelected] = useState(null);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
@@ -65,7 +67,12 @@ export default function WishlistBoard({ products: initialProducts }) {
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, done: true } : p)),
     );
-    setSelected((prev) => (prev?.id === id ? { ...prev, done: true } : prev));
+  }, []);
+
+  const handleGiftSuccess = useCallback(() => {
+    document.body.style.removeProperty("overflow");
+    setSelected(null);
+    setThankYouOpen(true);
   }, []);
 
   const filteredByCategory = useMemo(() => {
@@ -166,6 +173,11 @@ export default function WishlistBoard({ products: initialProducts }) {
         product={selected}
         onClose={handleCloseModal}
         onMarkedDone={handleProductDone}
+        onGiftSuccess={handleGiftSuccess}
+      />
+      <GiftThankYouPopup
+        open={thankYouOpen}
+        onClose={() => setThankYouOpen(false)}
       />
     </>
   );
