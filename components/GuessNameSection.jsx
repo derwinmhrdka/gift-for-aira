@@ -2,6 +2,10 @@
 
 import { useAddSparkBurst } from "@/components/SparkBurstProvider";
 import {
+  playGuessFeedbackSound,
+  unlockGuessSounds,
+} from "@/lib/guessSounds";
+import {
   boxStatesFromGuess,
   evaluateGuessFeedback,
   splitGuessInput,
@@ -10,78 +14,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const POPUP_AUTO_CLOSE_MS = 2800;
-
-function playShushSound() {
-  try {
-    const ctx = new AudioContext();
-    const duration = 0.45;
-    const sampleRate = ctx.sampleRate;
-    const length = Math.floor(sampleRate * duration);
-    const buffer = ctx.createBuffer(1, length, sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < length; i += 1) {
-      const t = i / length;
-      data[i] = (Math.random() * 2 - 1) * (1 - t) * 0.22;
-    }
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = 1800;
-    filter.Q.value = 0.7;
-    source.connect(filter);
-    filter.connect(ctx.destination);
-    source.start();
-    source.stop(ctx.currentTime + duration);
-  } catch {
-    // Audio may be blocked until user gesture.
-  }
-}
-
-function playAlmostSound() {
-  try {
-    const ctx = new AudioContext();
-    const master = ctx.createGain();
-    master.gain.value = 0.14;
-    master.connect(ctx.destination);
-
-    [523.25, 659.25].forEach((freq, index) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const start = ctx.currentTime + index * 0.1;
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(1, start + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(start);
-      osc.stop(start + 0.24);
-    });
-  } catch {
-    // Audio may be blocked until user gesture.
-  }
-}
-
-function playWrongSound() {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(220, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.28);
-    gain.gain.setValueAtTime(0.16, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.34);
-  } catch {
-    // Audio may be blocked until user gesture.
-  }
-}
 
 function LetterBox({ state, letter, onBurst }) {
   const ref = useRef(null);
@@ -156,9 +88,6 @@ function GuessPopup({ type, onClose }) {
 
   useEffect(() => {
     if (!type) return undefined;
-    if (type === "success") playShushSound();
-    else if (type === "close") playAlmostSound();
-    else if (type === "wrong") playWrongSound();
     timerRef.current = window.setTimeout(onClose, POPUP_AUTO_CLOSE_MS);
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -220,6 +149,7 @@ export default function GuessNameSection() {
     (value) => {
       if (won) return;
 
+      unlockGuessSounds();
       setGuess(value);
       const { first: nextFirst, last: nextLast } = splitGuessInput(
         value,
@@ -232,6 +162,10 @@ export default function GuessNameSection() {
         firstName,
         lastName,
       );
+
+      if (feedback) {
+        playGuessFeedbackSound(feedback);
+      }
 
       if (feedback === "success") {
         setWon(true);
@@ -278,6 +212,8 @@ export default function GuessNameSection() {
                 id="guess-name-input"
                 type="text"
                 value={guess}
+                onFocus={unlockGuessSounds}
+                onKeyDown={unlockGuessSounds}
                 onChange={(e) => handleInputChange(e.target.value)}
                 autoComplete="off"
                 placeholder="Ketik nama disini..."
