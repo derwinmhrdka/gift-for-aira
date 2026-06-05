@@ -38,15 +38,65 @@ function playShushSound() {
   }
 }
 
+function playAlmostSound() {
+  try {
+    const ctx = new AudioContext();
+    const master = ctx.createGain();
+    master.gain.value = 0.14;
+    master.connect(ctx.destination);
+
+    [523.25, 659.25].forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = ctx.currentTime + index * 0.1;
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(1, start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(start);
+      osc.stop(start + 0.24);
+    });
+  } catch {
+    // Audio may be blocked until user gesture.
+  }
+}
+
+function playWrongSound() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.28);
+    gain.gain.setValueAtTime(0.16, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.34);
+  } catch {
+    // Audio may be blocked until user gesture.
+  }
+}
+
 function LetterBox({ state, letter, onBurst }) {
   const ref = useRef(null);
-  const wasCorrect = useRef(state === "correct");
+  const wasCorrect = useRef(false);
 
   useEffect(() => {
     const isCorrect = state === "correct";
     if (isCorrect && !wasCorrect.current && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      onBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      const el = ref.current;
+      requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        onBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, {
+          snowHeavy: true,
+        });
+      });
     }
     wasCorrect.current = isCorrect;
   }, [state, onBurst]);
@@ -107,6 +157,8 @@ function GuessPopup({ type, onClose }) {
   useEffect(() => {
     if (!type) return undefined;
     if (type === "success") playShushSound();
+    else if (type === "close") playAlmostSound();
+    else if (type === "wrong") playWrongSound();
     timerRef.current = window.setTimeout(onClose, POPUP_AUTO_CLOSE_MS);
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -158,7 +210,7 @@ export default function GuessNameSection() {
   const [won, setWon] = useState(false);
   const addBurst = useAddSparkBurst();
 
-  const { first, last } = splitGuessInput(guess);
+  const { first, last } = splitGuessInput(guess, firstName);
   const firstBoxes = boxStatesFromGuess(first, firstName);
   const lastBoxes = boxStatesFromGuess(last, lastName);
 
@@ -169,7 +221,10 @@ export default function GuessNameSection() {
       if (won) return;
 
       setGuess(value);
-      const { first: nextFirst, last: nextLast } = splitGuessInput(value);
+      const { first: nextFirst, last: nextLast } = splitGuessInput(
+        value,
+        firstName,
+      );
 
       const feedback = evaluateGuessFeedback(
         nextFirst,

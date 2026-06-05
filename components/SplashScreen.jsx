@@ -114,9 +114,11 @@ function SplashOverlay({ imageUrls, onDone }) {
         decoding="sync"
         fetchPriority="high"
       />
-      <p className="font-display mt-6 bg-gradient-to-r from-sky-500 to-aira-navy bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-5xl">
-        Baby Wishes!
-      </p>
+      <div className="mt-6 overflow-visible px-2 pb-3 pt-1">
+        <p className="font-display bg-gradient-to-r from-sky-500 to-aira-navy bg-clip-text text-4xl font-extrabold leading-[1.35] tracking-tight text-transparent sm:text-5xl [padding-block-end:0.12em]">
+          Baby Wishes!
+        </p>
+      </div>
     </div>
   );
 }

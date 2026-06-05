@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const DEFAULT_MUSIC_PATH = "/music.mpeg";
 
-function MusicIcon({ muted }) {
+function MusicIcon({ active }) {
   return (
     <svg
       viewBox="0 0 36 24"
       fill="none"
-      className={`h-9 w-12 ${muted ? "" : "aira-music-icon-active"}`}
+      className={`h-9 w-12 ${active ? "aira-music-icon-active" : "opacity-80"}`}
       aria-hidden
     >
       <ellipse
@@ -33,7 +33,7 @@ function MusicIcon({ muted }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {!muted ? (
+      {active ? (
         <g className="aira-music-waves">
           <path
             d="M20 9c2 1.5 2 4.5 0 6"
@@ -54,23 +54,44 @@ function MusicIcon({ muted }) {
             strokeLinecap="round"
           />
         </g>
-      ) : null}
-      {muted ? (
-        <path
-          d="M2 2l20 20"
-          stroke="#ef4444"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      ) : null}
+      ) : (
+        <>
+          <path
+            d="M19 8v8"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.35"
+          />
+          <path
+            d="M22.5 6v11"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.25"
+          />
+          <path
+            d="M2 2l20 20"
+            stroke="#ef4444"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </>
+      )}
     </svg>
   );
 }
 
 export default function BackgroundMusicButton() {
   const audioRef = useRef(null);
-  const [muted, setMuted] = useState(false);
+  const [musicActive, setMusicActive] = useState(false);
   const [ready, setReady] = useState(false);
+
+  const syncPlaybackState = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setMusicActive(!audio.paused && !audio.muted);
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -80,41 +101,56 @@ export default function BackgroundMusicButton() {
     setReady(true);
 
     const tryPlay = async () => {
-      if (audio.muted) return;
       try {
         await audio.play();
       } catch {
         // Browser may block until the first tap/click.
+      } finally {
+        syncPlaybackState();
       }
     };
 
     tryPlay();
 
     const unlockOnGesture = () => {
+      if (!audio.paused && !audio.muted) return;
       tryPlay();
     };
 
+    const onPlaybackChange = () => syncPlaybackState();
+
+    audio.addEventListener("play", onPlaybackChange);
+    audio.addEventListener("pause", onPlaybackChange);
+    audio.addEventListener("volumechange", onPlaybackChange);
     document.addEventListener("click", unlockOnGesture);
     document.addEventListener("touchstart", unlockOnGesture, { passive: true });
 
     return () => {
+      audio.removeEventListener("play", onPlaybackChange);
+      audio.removeEventListener("pause", onPlaybackChange);
+      audio.removeEventListener("volumechange", onPlaybackChange);
       document.removeEventListener("click", unlockOnGesture);
       document.removeEventListener("touchstart", unlockOnGesture);
     };
-  }, []);
+  }, [syncPlaybackState]);
 
   const toggleMute = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    const nextMuted = !muted;
-    audio.muted = nextMuted;
-    setMuted(nextMuted);
-    if (!nextMuted) {
-      try {
-        await audio.play();
-      } catch {
-        // User can tap again if the browser delayed media activation.
-      }
+
+    if (musicActive) {
+      audio.muted = true;
+      syncPlaybackState();
+      return;
+    }
+
+    audio.muted = false;
+    try {
+      await audio.play();
+    } catch {
+      // User can tap again if the browser delayed media activation.
+    } finally {
+      syncPlaybackState();
     }
   };
 
@@ -126,10 +162,10 @@ export default function BackgroundMusicButton() {
         onClick={toggleMute}
         disabled={!ready}
         className="group fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-[230] inline-flex items-center justify-center bg-transparent p-0 text-aira-navy drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)] transition hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-aira-snow disabled:opacity-50"
-        aria-label={muted ? "Nyalakan musik" : "Mute musik"}
-        title={muted ? "Nyalakan musik" : "Mute musik"}
+        aria-label={musicActive ? "Mute musik" : "Nyalakan musik"}
+        title={musicActive ? "Mute musik" : "Nyalakan musik"}
       >
-        <MusicIcon muted={muted} />
+        <MusicIcon active={musicActive} />
       </button>
     </>
   );
