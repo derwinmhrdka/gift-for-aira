@@ -30,9 +30,55 @@ body {
   }
 }
 
+@keyframes aira-snowfall {
+  0% {
+    transform: translate3d(0, -6vh, 0);
+    opacity: 0;
+  }
+  6% {
+    opacity: var(--flake-o);
+  }
+  22% {
+    transform: translate3d(var(--sx1), 24vh, 0);
+  }
+  46% {
+    transform: translate3d(var(--sx2), 48vh, 0);
+  }
+  70% {
+    transform: translate3d(var(--sx3), 72vh, 0);
+  }
+  88% {
+    opacity: calc(var(--flake-o) * 0.45);
+  }
+  100% {
+    transform: translate3d(var(--sx4), 106vh, 0);
+    opacity: 0;
+  }
+}
+
+.aira-snowflake {
+  position: absolute;
+  top: -0.5rem;
+  animation: aira-snowfall var(--flake-dur) linear infinite;
+  animation-delay: var(--flake-delay);
+  will-change: transform, opacity;
+}
+
+.aira-snowflake-dot {
+  display: block;
+  border-radius: 9999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(197, 221, 240, 0.55) 100%
+  );
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aira-spark-dot,
-  .aira-flake {
+  .aira-flake,
+  .aira-snowflake {
     animation: none !important;
     opacity: 0 !important;
   }
