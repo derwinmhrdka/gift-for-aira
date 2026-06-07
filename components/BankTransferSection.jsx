@@ -66,7 +66,7 @@ export default function BankTransferSection() {
           Transfer Bank
         </h2>
         <p className="mt-2 text-base text-slate-600 sm:text-lg">
-          Bingung kasih kado? boleh transfer saja uncle onty 😀
+          Ngga mau kasih kado? boleh transfer saja ongkel onty 😀
         </p>
       </div>
 

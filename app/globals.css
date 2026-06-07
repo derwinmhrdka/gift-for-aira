@@ -125,12 +125,80 @@ body {
   color: rgb(56, 189, 248);
 }
 
+.aira-letter-box.is-typing:not(.is-open) .aira-letter-front {
+  border-color: rgb(250, 204, 21);
+  background: rgba(254, 249, 195, 0.92);
+  color: rgb(202, 138, 4);
+  box-shadow:
+    0 0 10px rgba(250, 204, 21, 0.55),
+    0 0 0 2px rgba(250, 204, 21, 0.28);
+}
+
+.aira-letter-box.is-wrong-glow:not(.is-open) .aira-letter-front {
+  border-color: rgb(248, 113, 113);
+  background: rgba(254, 242, 242, 0.95);
+  color: rgb(220, 38, 38);
+  box-shadow:
+    0 0 10px rgba(248, 113, 113, 0.55),
+    0 0 0 2px rgba(248, 113, 113, 0.3);
+}
+
 .aira-letter-back {
   transform: rotateY(180deg);
   border-color: rgb(56, 189, 248);
   background: linear-gradient(to bottom, #f0f9ff, #ffffff);
   color: #0f2744;
   box-shadow: 0 1px 3px rgba(56, 189, 248, 0.2);
+}
+
+.baby-match-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.baby-match-front {
+  transform: rotateY(180deg);
+}
+
+.baby-match-board-wrap {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  padding: 0.25rem;
+}
+
+.baby-match-board {
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.baby-match-board > .baby-match-card {
+  aspect-ratio: 5 / 7;
+  height: 100%;
+  width: auto;
+  max-height: 100%;
+  max-width: 100%;
+  justify-self: center;
+  align-self: center;
+}
+
+@keyframes baby-match-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
+.baby-match-card-glow > span {
+  animation: baby-match-glow 0.45s ease-out;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.55);
 }
 
 .aira-letter-wrong {
@@ -206,7 +274,163 @@ body {
     transform: rotateY(180deg);
   }
 
+  .baby-match-card-glow > span {
+    animation: none !important;
+  }
+
+  .baby-match-card > span {
+    transition: none !important;
+  }
+
   .group:hover .aira-music-waves {
     opacity: 1;
   }
+}
+
+.wish-ticker__shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: wish-ticker-shimmer 4s ease-in-out infinite;
+}
+
+.wish-ticker__track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: wish-ticker-scroll 28s linear infinite;
+}
+
+.wish-ticker__chunk {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.625rem;
+  padding-right: 0.75rem;
+}
+
+.wish-ticker__bubble {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(186, 230, 253, 0.95);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(234, 243, 251, 0.92) 100%
+  );
+  padding: 0.3rem 0.75rem 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0f2744;
+  box-shadow:
+    0 1px 2px rgba(147, 197, 253, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.wish-ticker__bubble-emoji {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.wish-ticker__bubble-name {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #0369a1;
+}
+
+.wish-ticker__bubble-sep {
+  flex-shrink: 0;
+  opacity: 0.45;
+}
+
+.wish-ticker__bubble-msg {
+  flex-shrink: 0;
+}
+
+.wish-ticker__bubble--gold {
+  border-color: rgba(245, 158, 11, 0.85);
+  background: linear-gradient(
+    135deg,
+    #fffbeb 0%,
+    #fde68a 45%,
+    #fcd34d 100%
+  );
+  color: #78350f;
+  box-shadow:
+    0 1px 3px rgba(245, 158, 11, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.wish-ticker__bubble--gold .wish-ticker__bubble-name {
+  color: #92400e;
+}
+
+.wish-ticker__bubble--gold .wish-ticker__bubble-sep {
+  opacity: 0.55;
+}
+
+@media (min-width: 640px) {
+  .wish-ticker__bubble {
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.875rem 0.35rem 0.625rem;
+  }
+}
+
+@keyframes wish-ticker-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes wish-ticker-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wish-ticker__track,
+  .wish-ticker__shimmer {
+    animation: none;
+  }
+
+  .wish-ticker {
+    overflow-x: auto;
+  }
+}
+
+.kahoot-ruler-input {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.kahoot-ruler-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  cursor: pointer;
+}
+
+.kahoot-ruler-input::-moz-range-thumb {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }

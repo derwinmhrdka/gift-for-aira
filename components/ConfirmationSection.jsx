@@ -1,5 +1,7 @@
 "use client";
 
+import FeatureCard from "@/components/FeatureCard";
+
 const DEFAULT_MESSAGE = "Halo bun, apakah produk masih ada?";
 
 function sanitizeWaNumber(raw) {
@@ -26,12 +28,12 @@ export default function ConfirmationSection() {
 
   return (
     <section className="w-full" aria-labelledby="confirmation-heading">
-      <div className="mx-auto max-w-lg rounded-3xl border border-white/55 bg-white/70 px-5 py-6 text-center shadow-md shadow-sky-200/25 backdrop-blur-md sm:px-6 sm:py-7">
+      <FeatureCard>
         <h2
           id="confirmation-heading"
           className="font-display text-2xl font-bold text-aira-navy sm:text-3xl"
         >
-          Ucapan / Konfirmasi
+          Konfirmasi
         </h2>
         <p className="mt-2 text-base text-slate-600 sm:text-lg">
           Mau ucapin sesuatu ke aku? Chat via mamanya dulu aja ya 😊.
@@ -55,7 +57,7 @@ export default function ConfirmationSection() {
             di <code className="rounded bg-white/60 px-1 py-0.5 text-xs">.env.local</code>
           </p>
         )}
-      </div>
+      </FeatureCard>
     </section>
   );
 }

@@ -135,7 +135,7 @@ export default function ProductModal({ product, onClose, onMarkedDone, onGiftSuc
             {unavailable ? (
               <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-slate-900/20 lg:rounded-l-3xl">
                 <span className="rounded-full border border-white/70 bg-white/92 px-4 py-2 text-sm font-bold uppercase tracking-wide text-slate-800 shadow-md">
-                  Unavailable
+                  Reserved
                 </span>
               </div>
             ) : null}

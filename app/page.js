@@ -1,20 +1,25 @@
 import BankTransferSection from "@/components/BankTransferSection";
-import ConfirmationSection from "@/components/ConfirmationSection";
-import GuessNameSection from "@/components/GuessNameSection";
+import BestWishesSection from "@/components/BestWishesSection";
 import LocationSection from "@/components/LocationSection";
 import LocationWash from "@/components/LocationWash";
 import { SparkBurstProvider } from "@/components/SparkBurstProvider";
 import SafariWash from "@/components/SafariWash";
+import SectionBackground from "@/components/SectionBackground";
+import SectionShell from "@/components/SectionShell";
 import WinterMotifPattern from "@/components/WinterMotifPattern";
 import WishlistBoard from "@/components/WishlistBoard";
 import WishlistSplashPreload from "@/components/WishlistSplashPreload";
-import { getWishlistProducts } from "@/lib/airtable";
+import { getWishlistProducts, getPresentWinners, getWishes } from "@/lib/airtable";
+import WishTicker from "@/components/WishTicker";
+import { WishTickerProvider } from "@/components/WishTickerProvider";
 import Link from "next/link";
 
 export const revalidate = 60;
 
 export default async function Home() {
   let products = [];
+  let wishes = [];
+  let winners = [];
   let errorMessage = null;
 
   try {
@@ -23,8 +28,22 @@ export default async function Home() {
     errorMessage = e instanceof Error ? e.message : "Gagal memuat data.";
   }
 
+  try {
+    wishes = await getWishes();
+  } catch {
+    wishes = [];
+  }
+
+  try {
+    winners = await getPresentWinners();
+  } catch {
+    winners = [];
+  }
+
   return (
+    <WishTickerProvider initialWishes={wishes} initialWinners={winners}>
     <div className="relative min-h-screen bg-gradient-to-b from-aira-snow via-white to-aira-iceLight [overflow-x:clip]">
+      <WishTicker />
       <WishlistSplashPreload products={products} />
       <WinterMotifPattern />
       <SparkBurstProvider>
@@ -44,10 +63,24 @@ export default async function Home() {
               </h1>
             </div>
             <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 sm:text-lg">
-              Wishlist si kecil, berisi hadiah-hadiah yang dia sukai. Terima kasih atas semua dukungannya yaa! 💖❄️
+              Hi onty ongkel, website ini untuk menyambut kehadiran {" "}
+              <span className="text-sky-600">&quot;Little Mahardika&quot; 🧸</span>
+              <br />Ucapan akan kami simpan dan sampaikan beberapa tahun mendatang
+              <br />Terima kasih atas doa dan dukungannya.
             </p>
           </div>
         </header>
+
+        <SectionShell
+          className="mb-5 sm:mb-6"
+          background={
+            <SectionBackground src="/bg_3.jpg" gradient="soft" objectPosition="object-[center_30%]" />
+          }
+        >
+          <div className="mx-auto w-full max-w-xl">
+            <BestWishesSection />
+          </div>
+        </SectionShell>
 
         {errorMessage ? (
           <div
@@ -64,32 +97,36 @@ export default async function Home() {
             </Link>
           </div>
         ) : (
-          <WishlistBoard products={products} />
+          <SectionShell
+            className="mb-2"
+            background={
+              <SectionBackground
+                src="/bg.jpg"
+                gradient="wishlist"
+                objectPosition="object-center"
+              />
+            }
+          >
+            <WishlistBoard products={products} />
+          </SectionShell>
         )}
 
-        <div className="relative isolate mt-16 overflow-hidden rounded-3xl px-2 pb-8 pt-6 sm:mt-20 sm:px-4 sm:pb-10 sm:pt-8">
-          <SafariWash anchor="bottom" />
-          <div className="relative z-10">
-            <BankTransferSection />
-          </div>
-        </div>
+        <SectionShell
+          className="mt-16 sm:mt-20"
+          background={<LocationWash />}
+        >
+          <LocationSection />
+        </SectionShell>
 
-        <div className="relative isolate mt-16 overflow-hidden rounded-3xl px-2 pb-8 pt-6 sm:mt-20 sm:px-4 sm:pb-10 sm:pt-8">
-          <LocationWash />
-          <div className="relative z-10">
-            <LocationSection />
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-12 sm:mt-14">
-          <ConfirmationSection />
-        </div>
-
-        <div className="relative z-10 mt-12 sm:mt-14">
-          <GuessNameSection />
-        </div>
+        <SectionShell
+          className="mt-16 sm:mt-20"
+          background={<SafariWash anchor="bottom" />}
+        >
+          <BankTransferSection />
+        </SectionShell>
       </div>
       </SparkBurstProvider>
     </div>
+    </WishTickerProvider>
   );
 }

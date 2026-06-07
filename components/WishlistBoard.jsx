@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import FeatureCard from "./FeatureCard";
 import GiftThankYouPopup from "./GiftThankYouPopup";
 import CategoryPills from "./CategoryPills";
 import ProductModal from "./ProductModal";
@@ -127,6 +128,22 @@ export default function WishlistBoard({ products: initialProducts }) {
   return (
     <>
       <div ref={boardTopRef} />
+      <section
+        className="mx-auto mb-5 w-full max-w-xl sm:mb-6"
+        aria-labelledby="gift-recommendations-heading"
+      >
+        <FeatureCard className="!px-4 !py-4 sm:!px-5 sm:!py-5">
+          <h2
+            id="gift-recommendations-heading"
+            className="font-display text-xl font-bold text-aira-navy sm:text-2xl"
+          >
+            Rekomendasi Hadiah
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 sm:text-base">
+            Mau kasih kado tapi bingung? Bisa cek wishlist kami di bawah 😊
+          </p>
+        </FeatureCard>
+      </section>
       <div className="mb-6 flex w-full items-stretch gap-2 sm:mx-auto sm:mb-8 sm:max-w-2xl">
         <ProductSearch
           value={search}

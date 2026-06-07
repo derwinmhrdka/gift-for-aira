@@ -74,7 +74,7 @@ export default function WishlistGrid({ products, onOpen }) {
             {unavailable ? (
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-900/25">
                 <span className="rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-800 shadow-sm sm:text-sm">
-                  Unavailable
+                  Reserved
                 </span>
               </div>
             ) : null}

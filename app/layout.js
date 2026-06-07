@@ -27,11 +27,6 @@ export const metadata = {
   metadataBase: new URL(siteUrl()),
   title: "Mahardika’s Baby Wishlist",
   description: "Sweet picks for Mahardika's baby — curated with love.",
-  icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
-  },
   openGraph: {
     title: "Mahardika’s Baby Wishlist",
     description: "Sweet picks for Mahardika's baby — curated with love.",
