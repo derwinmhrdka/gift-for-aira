@@ -366,91 +366,138 @@ export default function GuessCardGame({ onFinished, allowReplay = false, wishNam
     return (
       <div className="flex min-h-0 flex-1 flex-col text-center">
         <div className="shrink-0">
-          <p className="text-3xl md:text-4xl" aria-hidden="true">
-            🎉
+          <p className="text-2xl md:text-3xl" aria-hidden="true">
+            🍼
           </p>
-          <h3 className="font-display mt-1 text-base font-extrabold text-aira-navy md:mt-2 md:text-xl">
-            HASILMU
+          <h3 className="font-display mt-1 text-sm font-extrabold text-aira-navy md:text-base">
+            BABY MATCH CHALLENGE — HASIL ANALISA KAMU
           </h3>
         </div>
 
-        <div className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto rounded-2xl border border-sky-200/80 bg-gradient-to-br from-sky-50/90 via-white to-rose-50/80 px-3 py-3 text-left text-sm md:mt-3 md:px-4 md:py-4">
-          <div className="space-y-2 border-b border-sky-100 pb-3 text-center text-xs">
-            <p className="flex justify-between gap-3">
-              <span className="text-slate-500">⏱️ Waktu</span>
-              <span className="font-bold tabular-nums text-aira-navy">
-                {elapsedSec} detik
-              </span>
+        <div className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto rounded-2xl border border-sky-200/80 bg-gradient-to-br from-sky-50/90 via-white to-rose-50/80 px-3 py-3 text-left text-xs md:mt-3 md:px-4 md:py-4 md:text-sm">
+          <section className="space-y-2 border-b border-sky-100 pb-3">
+            <p className="font-display text-sm font-extrabold text-aira-navy">
+              📊 {result.intro.title}
             </p>
-            <p className="flex justify-between gap-3">
-              <span className="text-slate-500">🎯 Percobaan</span>
-              <span className="font-bold tabular-nums text-aira-navy">
-                {attempts} kali
-              </span>
-            </p>
-            {result.bonusRank ? (
-              <p className="flex justify-between gap-3">
-                <span className="text-slate-500">🃏 Pasangan terakhir</span>
-                <span className="text-right text-[11px] font-semibold text-aira-navy">
-                  {result.bonusRank.pairLabel}
-                </span>
-              </p>
-            ) : null}
-          </div>
-
-          <div>
-            <p className="font-display text-base font-extrabold text-aira-navy">
-              {result.mainRank.emoji} {result.mainRank.title}
-            </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-              {result.mainRank.description}
-            </p>
-            <ul className="mt-2 space-y-1 text-[11px] text-slate-600">
-              {result.mainRank.predictions.map((line) => (
+            <p className="text-slate-600">{result.intro.lead}</p>
+            <p className="text-slate-600">{result.intro.body}</p>
+            <ul className="space-y-1 text-[11px] text-slate-600 md:text-xs">
+              {result.intro.criteria.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
-          </div>
+          </section>
 
-          {result.bonusRank ? (
-            <div className="border-t border-sky-100 pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                Bonus Analisis Rahasia
+          {result.instinctAnalysis ? (
+            <section className="space-y-2 border-b border-sky-100 pb-3">
+              <p className="font-display text-sm font-extrabold text-aira-navy">
+                👶 Analisa Insting Pertama Kamu
               </p>
-              <p className="font-display mt-1.5 text-base font-extrabold text-aira-navy">
-                {result.bonusRank.emoji} {result.bonusRank.title}
+              <p className="font-semibold text-aira-navy">
+                {result.instinctAnalysis.pairLabel} → &ldquo;
+                {result.instinctAnalysis.title}&rdquo;
               </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                {result.bonusRank.description}
+              <p className="leading-relaxed text-slate-600">
+                {result.instinctAnalysis.summary}
               </p>
-            </div>
+              <p className="text-[11px] text-slate-500 md:text-xs">
+                💡 Pola logis: {result.instinctAnalysis.logicPattern}
+              </p>
+              <p className="text-[11px] text-slate-500 md:text-xs">
+                📌 Interpretasi: &ldquo;{result.instinctAnalysis.interpretation}
+                &rdquo;
+              </p>
+            </section>
           ) : null}
 
-          <div className="border-t border-sky-100 pt-3">
-            <p className="text-xs leading-relaxed text-slate-600">
-              {result.narrative}
+          <section className="space-y-2 border-b border-sky-100 pb-3">
+            <p className="font-display text-sm font-extrabold text-aira-navy">
+              ⏱️ Analisa Performa
             </p>
-          </div>
-
-          <div className="border-t border-sky-100 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-              📊 Statistik Rahasia
+            <p className="font-semibold text-aira-navy">
+              {result.performanceAnalysis.emoji}{" "}
+              {result.performanceAnalysis.title}
             </p>
-            <ul className="mt-2 space-y-1 text-[11px] text-slate-600">
-              {result.secretStats.map((line) => (
-                <li key={line}>{line}</li>
+            <p className="text-[11px] text-slate-500 md:text-xs">
+              {result.performanceAnalysis.criteria}
+            </p>
+            <ul className="space-y-1 text-[11px] text-slate-600 md:text-xs">
+              {result.performanceAnalysis.points.map((line) => (
+                <li key={line}>• {line}</li>
               ))}
             </ul>
-          </div>
+            <p className="text-[11px] font-semibold text-emerald-700 md:text-xs">
+              🍼 Kesiapan: {result.performanceAnalysis.readiness}%
+            </p>
+            <p className="text-[11px] text-slate-500 md:text-xs">
+              📌 Analisa: &ldquo;{result.performanceAnalysis.analysis}&rdquo;
+            </p>
+          </section>
 
-          <div className="border-t border-sky-100 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-              🏅 Kesimpulan Resmi
+          <section className="space-y-2 border-b border-sky-100 pb-3">
+            <p className="font-display text-sm font-extrabold text-aira-navy">
+              👣 Analisa Efisiensi Langkah
             </p>
-            <p className="mt-1.5 text-xs italic leading-relaxed text-slate-600">
-              &ldquo;{result.conclusion}&rdquo;
+            <p className="font-semibold text-aira-navy">
+              {result.efficiencyAnalysis.emoji}{" "}
+              {result.efficiencyAnalysis.title}
             </p>
-          </div>
+            <p className="text-[11px] text-slate-500 md:text-xs">
+              {result.efficiencyAnalysis.criteria}
+            </p>
+            <p className="text-[11px] font-semibold text-sky-700 md:text-xs">
+              🧠 Kesiapan: {result.efficiencyAnalysis.readiness}%
+            </p>
+            <p className="text-[11px] text-slate-500 md:text-xs">
+              📌 Makna: &ldquo;{result.efficiencyAnalysis.meaning}&rdquo;
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <p className="font-display text-sm font-extrabold text-aira-navy">
+              🎉 Hasil Final Kamu
+            </p>
+            <div className="rounded-xl border border-sky-100/90 bg-white/70 px-3 py-2 text-center">
+              <p className="font-display font-extrabold text-aira-navy">
+                🍼 {result.finalResult.teamName}
+              </p>
+              <p className="mt-1 font-display font-extrabold text-aira-navy">
+                + {result.finalResult.instinctTitle}
+              </p>
+            </div>
+            <p className="font-semibold text-slate-700">Ringkasan Pola</p>
+            <ul className="space-y-1 text-[11px] text-slate-600 md:text-xs">
+              {result.finalResult.patternSummary.map((line) => (
+                <li key={line}>• {line}</li>
+              ))}
+            </ul>
+            <div className="rounded-xl border border-sky-100/90 bg-sky-50/60 px-3 py-2 text-[11px] text-slate-600 md:text-xs">
+              <p className="font-display font-bold text-aira-navy">
+                📊 Final Score
+              </p>
+              <p className="mt-1">
+                ⏱️ Waktu: {result.finalResult.finalScore.seconds} detik
+              </p>
+              <p>👣 Percobaan: {result.finalResult.finalScore.attempts}</p>
+              <p>
+                🍼 Kesiapan menjadi orang tua:{" "}
+                <span className="font-bold text-emerald-700">
+                  {result.finalResult.finalScore.parentingReadiness}%
+                </span>
+              </p>
+              <p>
+                📸 Kebiasaan dokumentasi:{" "}
+                {result.finalResult.finalScore.documentationHabit}
+              </p>
+              <p>
+                🧠 Gaya keputusan:{" "}
+                {result.finalResult.finalScore.decisionStyle}
+              </p>
+            </div>
+            <p className="text-[11px] italic leading-relaxed text-slate-600 md:text-xs">
+              ✨ Kesimpulan: &ldquo;{result.finalResult.conclusion}&rdquo;
+            </p>
+          </section>
         </div>
 
         <div className="mt-3 shrink-0 space-y-2 pb-0.5 md:mt-4">
