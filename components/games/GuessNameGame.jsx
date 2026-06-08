@@ -16,7 +16,7 @@ import {
 } from "@/lib/nameGuess";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 1;
 const CHAR_STEP_MS = 480;
 const SKIP_STEP_MS = 60;
 
