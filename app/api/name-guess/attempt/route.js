@@ -1,9 +1,10 @@
-import { hasParticipatedInGame, recordParticipation } from "@/lib/airtable";
+import { checkParticipationTiered, recordParticipation } from "@/lib/airtable";
 import {
   PARTICIPATION_GAMES,
   ParticipationError,
+  getParticipationIdentity,
   isAdminModeServer,
-  requireVisitorHash,
+  participationBlockMessage,
 } from "@/lib/participationServer";
 import { NextResponse } from "next/server";
 
@@ -20,17 +21,21 @@ export async function POST(request) {
   }
 
   try {
-    const visitorHash = requireVisitorHash(body?.visitorId, request);
+    const { visitorHash, ipHash } = getParticipationIdentity(
+      request,
+      body?.visitorId,
+    );
     const game = PARTICIPATION_GAMES.nameGuess;
 
-    if (await hasParticipatedInGame(visitorHash, game)) {
+    const block = await checkParticipationTiered(visitorHash, ipHash, game);
+    if (block.blocked) {
       return NextResponse.json(
-        { error: "Kesempatan tebak nama sudah habis." },
+        { error: participationBlockMessage(block.reason) },
         { status: 403 },
       );
     }
 
-    await recordParticipation({ visitorHash, game });
+    await recordParticipation({ visitorHash, ipHash, game });
 
     return NextResponse.json({ ok: true, attemptsLeft: 0 });
   } catch (e) {

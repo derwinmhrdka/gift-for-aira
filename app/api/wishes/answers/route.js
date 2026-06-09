@@ -1,6 +1,6 @@
 import {
+  checkParticipationTiered,
   getWishRecordById,
-  hasParticipatedInGame,
   recordParticipation,
   updateWishAnswers,
   wishHasDoorprizeAnswers,
@@ -8,8 +8,9 @@ import {
 import {
   PARTICIPATION_GAMES,
   ParticipationError,
+  getParticipationIdentity,
   isAdminModeServer,
-  requireVisitorHash,
+  participationBlockMessage,
 } from "@/lib/participationServer";
 import { NextResponse } from "next/server";
 
@@ -34,17 +35,20 @@ export async function POST(request) {
   const answer5 = typeof answers.answer5 === "string" ? answers.answer5 : "";
 
   try {
-    const visitorHash = requireVisitorHash(body?.visitorId, request);
+    const { visitorHash, ipHash } = getParticipationIdentity(
+      request,
+      body?.visitorId,
+    );
     const game = PARTICIPATION_GAMES.doorprize;
 
-    if (
-      visitorHash &&
-      (await hasParticipatedInGame(visitorHash, game))
-    ) {
-      return NextResponse.json(
-        { error: "Kamu sudah pernah ikut doorprize." },
-        { status: 403 },
-      );
+    if (visitorHash) {
+      const block = await checkParticipationTiered(visitorHash, ipHash, game);
+      if (block.blocked) {
+        return NextResponse.json(
+          { error: participationBlockMessage(block.reason) },
+          { status: 403 },
+        );
+      }
     }
 
     const wishRecord = await getWishRecordById(wishId);
@@ -65,7 +69,7 @@ export async function POST(request) {
     });
 
     if (visitorHash && !isAdminModeServer(request)) {
-      await recordParticipation({ visitorHash, game, wishId });
+      await recordParticipation({ visitorHash, ipHash, game, wishId });
     }
 
     return NextResponse.json({ ok: true });

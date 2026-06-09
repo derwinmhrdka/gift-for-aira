@@ -1,13 +1,14 @@
 import {
-  hasParticipatedInGame,
+  checkParticipationTiered,
   recordParticipation,
   spinPresent,
 } from "@/lib/airtable";
 import {
   PARTICIPATION_GAMES,
   ParticipationError,
+  getParticipationIdentity,
   isAdminModeServer,
-  requireVisitorHash,
+  participationBlockMessage,
 } from "@/lib/participationServer";
 import { NextResponse } from "next/server";
 
@@ -18,23 +19,26 @@ export async function POST(request) {
       ? body.segmentIds.map(String)
       : undefined;
 
-    const visitorHash = requireVisitorHash(body?.visitorId, request);
+    const { visitorHash, ipHash } = getParticipationIdentity(
+      request,
+      body?.visitorId,
+    );
     const game = PARTICIPATION_GAMES.roulette;
 
-    if (
-      visitorHash &&
-      (await hasParticipatedInGame(visitorHash, game))
-    ) {
-      return NextResponse.json(
-        { error: "Kamu sudah pernah memutar roulette." },
-        { status: 403 },
-      );
+    if (visitorHash) {
+      const block = await checkParticipationTiered(visitorHash, ipHash, game);
+      if (block.blocked) {
+        return NextResponse.json(
+          { error: participationBlockMessage(block.reason) },
+          { status: 403 },
+        );
+      }
     }
 
     const result = await spinPresent({ segmentIds });
 
     if (visitorHash && !isAdminModeServer(request) && !result.canSpinAgain) {
-      await recordParticipation({ visitorHash, game });
+      await recordParticipation({ visitorHash, ipHash, game });
     }
 
     return NextResponse.json(result);

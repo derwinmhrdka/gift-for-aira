@@ -1,10 +1,10 @@
-import { hasParticipatedInGame } from "@/lib/airtable";
+import { checkParticipationTiered } from "@/lib/airtable";
 import {
   PARTICIPATION_GAMES,
   ParticipationError,
+  getParticipationIdentity,
   isAdminModeServer,
   parseVisitorId,
-  requireVisitorHash,
 } from "@/lib/participationServer";
 import { NextResponse } from "next/server";
 
@@ -24,11 +24,17 @@ export async function GET(request) {
   }
 
   try {
-    const visitorHash = requireVisitorHash(visitorId, request);
-    const used = await hasParticipatedInGame(
-      visitorHash,
-      PARTICIPATION_GAMES.nameGuess,
+    const { visitorHash, ipHash } = getParticipationIdentity(
+      request,
+      visitorId,
     );
+    const used = (
+      await checkParticipationTiered(
+        visitorHash,
+        ipHash,
+        PARTICIPATION_GAMES.nameGuess,
+      )
+    ).blocked;
 
     return NextResponse.json({
       canAttempt: !used,

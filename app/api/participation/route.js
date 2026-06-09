@@ -1,23 +1,51 @@
 import {
-  getParticipatedGameSet,
-  hasParticipatedInGame,
+  checkParticipationTiered,
+  getParticipationSignalsForIdentity,
   recordParticipation,
 } from "@/lib/airtable";
 import {
   PARTICIPATION_GAMES,
   ParticipationError,
+  getParticipationIdentity,
   isAdminModeServer,
   parseVisitorId,
-  requireVisitorHash,
+  participationBlockMessage,
 } from "@/lib/participationServer";
 import { NextResponse } from "next/server";
 
-function buildAvailability(participated) {
+function canPlayTiered(fpGames, ipGames, game, hasFingerprint) {
+  if (fpGames.has(game)) return false;
+  if (hasFingerprint && ipGames.has(game)) return false;
+  return true;
+}
+
+async function buildAvailability(visitorHash, ipHash) {
+  const { fpGames, ipGames } = await getParticipationSignalsForIdentity(
+    visitorHash,
+    ipHash,
+  );
+  const hasFingerprint = Boolean(visitorHash);
+
   return {
-    card: !participated.has(PARTICIPATION_GAMES.card),
-    doorprize: !participated.has(PARTICIPATION_GAMES.doorprize),
-    roulette: !participated.has(PARTICIPATION_GAMES.roulette),
-    nameGuess: !participated.has(PARTICIPATION_GAMES.nameGuess),
+    card: canPlayTiered(fpGames, ipGames, PARTICIPATION_GAMES.card, hasFingerprint),
+    doorprize: canPlayTiered(
+      fpGames,
+      ipGames,
+      PARTICIPATION_GAMES.doorprize,
+      hasFingerprint,
+    ),
+    roulette: canPlayTiered(
+      fpGames,
+      ipGames,
+      PARTICIPATION_GAMES.roulette,
+      hasFingerprint,
+    ),
+    nameGuess: canPlayTiered(
+      fpGames,
+      ipGames,
+      PARTICIPATION_GAMES.nameGuess,
+      hasFingerprint,
+    ),
   };
 }
 
@@ -42,9 +70,8 @@ export async function GET(request) {
   }
 
   try {
-    const visitorHash = requireVisitorHash(visitorId, request);
-    const participated = await getParticipatedGameSet(visitorHash);
-    return NextResponse.json(buildAvailability(participated));
+    const { visitorHash, ipHash } = getParticipationIdentity(request, visitorId);
+    return NextResponse.json(await buildAvailability(visitorHash, ipHash));
   } catch (e) {
     if (e instanceof ParticipationError) {
       return NextResponse.json({ error: e.message }, { status: e.status });
@@ -72,16 +99,21 @@ export async function POST(request) {
   }
 
   try {
-    const visitorHash = requireVisitorHash(body?.visitorId, request);
-    if (await hasParticipatedInGame(visitorHash, game)) {
+    const { visitorHash, ipHash } = getParticipationIdentity(
+      request,
+      body?.visitorId,
+    );
+    const block = await checkParticipationTiered(visitorHash, ipHash, game);
+    if (block.blocked) {
       return NextResponse.json(
-        { error: "Kamu sudah pernah main mini game ini." },
+        { error: participationBlockMessage(block.reason) },
         { status: 403 },
       );
     }
 
     await recordParticipation({
       visitorHash,
+      ipHash,
       game,
       wishId: typeof body?.wishId === "string" ? body.wishId : "",
     });

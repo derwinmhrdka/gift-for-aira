@@ -470,10 +470,11 @@ export default forwardRef(function GuessNameGame(
           <button
             type="button"
             onClick={handleGuess}
-            disabled={!guess.trim() || isRevealing || statusLoading}
+            // disabled={!guess.trim() || isRevealing || statusLoading}
+            disabled={true}             // temporary
             className="font-display w-full rounded-xl bg-gradient-to-r from-sky-500 to-aira-navy px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:opacity-50"
           >
-            {isRevealing ? "..." : statusLoading ? "Memuat..." : "Tebak!"}
+            {isRevealing ? "..." : statusLoading ? "Memuat..." : "Temporarily Disabled!"}
           </button>
         </div>
       ) : won ? (
