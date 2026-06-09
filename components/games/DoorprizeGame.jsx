@@ -5,7 +5,9 @@ import GuessGenderGame from "@/components/games/GuessGenderGame";
 import GuessNameGame from "@/components/games/GuessNameGame";
 import GuessTimeGame from "@/components/games/GuessTimeGame";
 import GuessWeightGame from "@/components/games/GuessWeightGame";
-import { isAdminMode, markParticipatedIn } from "@/lib/gameParticipation";
+import { useAdminMode } from "@/components/AdminModeProvider";
+import { markParticipatedIn } from "@/lib/gameParticipation";
+import { getVisitorId } from "@/lib/visitorId";
 import { useRef, useState } from "react";
 
 const STEPS = [
@@ -36,6 +38,7 @@ function StepSection({ step, title, emoji, children }) {
 }
 
 export default function DoorprizeGame({ wishId, onComplete }) {
+  const isAdmin = useAdminMode();
   const genderRef = useRef(null);
   const dateRef = useRef(null);
   const timeRef = useRef(null);
@@ -75,10 +78,11 @@ export default function DoorprizeGame({ wishId, onComplete }) {
     setError("");
 
     try {
+      const visitorId = await getVisitorId();
       const res = await fetch("/api/wishes/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wishId, answers: preview }),
+        body: JSON.stringify({ wishId, answers: preview, visitorId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Gagal mengirim jawaban.");
@@ -99,7 +103,7 @@ export default function DoorprizeGame({ wishId, onComplete }) {
   }
 
   function skipDoorprize() {
-    if (!isAdminMode()) return;
+    if (!isAdmin) return;
     markParticipatedIn("doorprize");
     onComplete?.();
   }
@@ -126,7 +130,7 @@ export default function DoorprizeGame({ wishId, onComplete }) {
         <p className="mt-1 text-xs text-slate-500 sm:text-sm">
           Selesaikan {STEPS.length} tebakan berikut. Good luck!
         </p>
-        {isAdminMode() ? (
+        {isAdmin ? (
           <button
             type="button"
             onClick={skipDoorprize}

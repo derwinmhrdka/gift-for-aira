@@ -7,6 +7,7 @@ import {
   playGuessWrongSound,
   unlockGuessSounds,
 } from "@/lib/guessSounds";
+import { useAdminMode } from "@/components/AdminModeProvider";
 import {
   allLettersRevealed,
   isExactNameMatch,
@@ -14,6 +15,7 @@ import {
   normalizeName,
   splitGuessInput,
 } from "@/lib/nameGuess";
+import { getVisitorId } from "@/lib/visitorId";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 const MAX_ATTEMPTS = 1;
@@ -137,6 +139,7 @@ export default forwardRef(function GuessNameGame(
   { embedded = false, inputId = "guess-name-input" },
   ref,
 ) {
+  const isAdmin = useAdminMode();
   const firstName = process.env.NEXT_PUBLIC_BABY_FIRST_NAME?.trim() ?? "";
   const lastName = process.env.NEXT_PUBLIC_BABY_LAST_NAME?.trim() ?? "";
 
@@ -153,6 +156,8 @@ export default forwardRef(function GuessNameGame(
   const [outOfAttempts, setOutOfAttempts] = useState(false);
   const [typingGlowActive, setTypingGlowActive] = useState(false);
   const [lastSubmittedGuess, setLastSubmittedGuess] = useState("");
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [attemptError, setAttemptError] = useState("");
   const revealTimersRef = useRef([]);
   const addBurst = useAddSparkBurst();
 
@@ -195,7 +200,42 @@ export default forwardRef(function GuessNameGame(
     setWon(false);
     setOutOfAttempts(false);
     setTypingGlowActive(false);
+    setAttemptError("");
   }, [firstName, lastName]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      setStatusLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadStatus() {
+      try {
+        const visitorId = await getVisitorId();
+        if (!visitorId) return;
+        const res = await fetch(
+          `/api/name-guess/status?visitorId=${encodeURIComponent(visitorId)}`,
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) return;
+        if (data.canAttempt === false) {
+          setOutOfAttempts(true);
+        }
+      } catch {
+        /* keep local state */
+      } finally {
+        if (!cancelled) setStatusLoading(false);
+      }
+    }
+
+    loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
 
   useEffect(() => {
     return () => {
@@ -221,16 +261,14 @@ export default forwardRef(function GuessNameGame(
   const attemptsLeft = MAX_ATTEMPTS - attempts;
   const locked = won || outOfAttempts || isRevealing;
 
-  const handleGuess = useCallback(() => {
-    if (locked || !guess.trim()) return;
-
-    const submittedGuess = guess.trim();
-    setLastSubmittedGuess(submittedGuess);
-
+  const runGuessAnimation = useCallback((submittedGuess) => {
     unlockGuessSounds();
     clearRevealTimers();
 
-    const { first: guessFirst, last: guessLast } = splitGuessInput(guess, firstName);
+    const { first: guessFirst, last: guessLast } = splitGuessInput(
+      submittedGuess,
+      firstName,
+    );
     const nextFirst = mergeRevealedFromGuess(guessFirst, firstName, revealedFirst);
     const nextLast = mergeRevealedFromGuess(guessLast, lastName, revealedLast);
     const characterQueue = buildFullCharacterQueue(firstName, lastName);
@@ -329,8 +367,6 @@ export default forwardRef(function GuessNameGame(
 
     processStep();
   }, [
-    locked,
-    guess,
     firstName,
     lastName,
     revealedFirst,
@@ -339,6 +375,36 @@ export default forwardRef(function GuessNameGame(
     clearRevealTimers,
     scheduleReveal,
   ]);
+
+  const handleGuess = useCallback(async () => {
+    if (locked || !guess.trim() || statusLoading) return;
+
+    const submittedGuess = guess.trim();
+    setAttemptError("");
+
+    if (!isAdmin) {
+      try {
+        const visitorId = await getVisitorId();
+        const res = await fetch("/api/name-guess/attempt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitorId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setOutOfAttempts(true);
+          setAttemptError(data.error || "Kesempatan tebak nama sudah habis.");
+          return;
+        }
+      } catch {
+        setAttemptError("Gagal mencatat percobaan. Coba lagi ya.");
+        return;
+      }
+    }
+
+    setLastSubmittedGuess(submittedGuess);
+    runGuessAnimation(submittedGuess);
+  }, [locked, guess, statusLoading, runGuessAnimation]);
 
   function handleInputChange(value) {
     setGuess(value);
@@ -391,25 +457,50 @@ export default forwardRef(function GuessNameGame(
               handleKeyDown(e);
             }}
             onChange={(e) => handleInputChange(e.target.value)}
-            disabled={isRevealing}
+            disabled={isRevealing || statusLoading}
             autoComplete="off"
             placeholder="Ketik nama di sini..."
             className="font-display w-full rounded-2xl border border-sky-200/80 bg-white/90 px-4 py-3 text-base font-semibold text-aira-navy shadow-inner placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-300/70 disabled:opacity-60"
           />
+          {attemptError ? (
+            <p className="text-center text-xs text-red-600" role="alert">
+              {attemptError}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={handleGuess}
-            //disabled={!guess.trim() || isRevealing}
-            disabled={true}
+            disabled={!guess.trim() || isRevealing || statusLoading}
             className="font-display w-full rounded-xl bg-gradient-to-r from-sky-500 to-aira-navy px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:opacity-50"
           >
-            {isRevealing ? "..." : "Disabled dl takut byk yg tau 😭"}
+            {isRevealing ? "..." : statusLoading ? "Memuat..." : "Tebak!"}
           </button>
         </div>
       ) : won ? (
         <p className="mt-5 rounded-2xl border border-sky-200/80 bg-white/85 px-4 py-3 text-center text-sm font-semibold text-aira-navy">
           Nama sudah terbuka semua. Sstt... rahasia ya! 🤫
         </p>
+      ) : embedded ? (
+        <div className="mt-5 space-y-2.5">
+          <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900">
+            Kesempatan tebak habis. Tulis tebakanmu untuk doorprize ya.
+          </p>
+          <label htmlFor={`${inputId}-manual`} className="sr-only">
+            Tebakan nama untuk doorprize
+          </label>
+          <input
+            id={`${inputId}-manual`}
+            type="text"
+            value={guess}
+            onChange={(e) => {
+              setGuess(e.target.value);
+              setLastSubmittedGuess(e.target.value.trim());
+            }}
+            autoComplete="off"
+            placeholder="Tulis tebakan nama..."
+            className="font-display w-full rounded-2xl border border-sky-200/80 bg-white/90 px-4 py-3 text-base font-semibold text-aira-navy shadow-inner placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-300/70"
+          />
+        </div>
       ) : (
         <p className="mt-5 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900">
           Kesempatan habis. Huruf yang belum terbuka tetap rahasia! 🤫

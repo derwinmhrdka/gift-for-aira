@@ -1,4 +1,16 @@
-import { updateWishAnswers } from "@/lib/airtable";
+import {
+  getWishRecordById,
+  hasParticipatedInGame,
+  recordParticipation,
+  updateWishAnswers,
+  wishHasDoorprizeAnswers,
+} from "@/lib/airtable";
+import {
+  PARTICIPATION_GAMES,
+  ParticipationError,
+  isAdminModeServer,
+  requireVisitorHash,
+} from "@/lib/participationServer";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
@@ -22,6 +34,27 @@ export async function POST(request) {
   const answer5 = typeof answers.answer5 === "string" ? answers.answer5 : "";
 
   try {
+    const visitorHash = requireVisitorHash(body?.visitorId, request);
+    const game = PARTICIPATION_GAMES.doorprize;
+
+    if (
+      visitorHash &&
+      (await hasParticipatedInGame(visitorHash, game))
+    ) {
+      return NextResponse.json(
+        { error: "Kamu sudah pernah ikut doorprize." },
+        { status: 403 },
+      );
+    }
+
+    const wishRecord = await getWishRecordById(wishId);
+    if (wishHasDoorprizeAnswers(wishRecord?.fields)) {
+      return NextResponse.json(
+        { error: "Ucapan ini sudah pernah mengirim jawaban doorprize." },
+        { status: 403 },
+      );
+    }
+
     await updateWishAnswers({
       wishId,
       answer1,
@@ -30,8 +63,16 @@ export async function POST(request) {
       answer4,
       answer5,
     });
+
+    if (visitorHash && !isAdminModeServer(request)) {
+      await recordParticipation({ visitorHash, game, wishId });
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
+    if (e instanceof ParticipationError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "Gagal menyimpan jawaban.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }

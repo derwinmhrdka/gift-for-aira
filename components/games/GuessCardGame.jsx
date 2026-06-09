@@ -8,9 +8,10 @@ import {
   vibrateMatch,
   vibrateMismatch,
 } from "@/lib/babyMatch";
+import { useAdminMode } from "@/components/AdminModeProvider";
 import {
   canOpenRoulette,
-  isAdminMode,
+  fetchRouletteAvailability,
   markRouletteUsed,
 } from "@/lib/gameParticipation";
 import {
@@ -151,6 +152,7 @@ function MatchCard({ card, isFlipped, isMatched, isGlowing, onClick, disabled })
 }
 
 export default function GuessCardGame({ onFinished, allowReplay = false, wishName = "" }) {
+  const isAdmin = useAdminMode();
   const addBurst = useAddSparkBurst();
   const finishedRef = useRef(false);
   const boardWrapRef = useRef(null);
@@ -299,9 +301,14 @@ export default function GuessCardGame({ onFinished, allowReplay = false, wishNam
   }
 
   useEffect(() => {
-    if (phase === "complete") {
-      setRouletteAvailable(canOpenRoulette());
-    }
+    if (phase !== "complete") return;
+    let cancelled = false;
+    fetchRouletteAvailability().then((available) => {
+      if (!cancelled) setRouletteAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [phase]);
 
   function openRoulette() {
@@ -332,7 +339,7 @@ export default function GuessCardGame({ onFinished, allowReplay = false, wishNam
   }
 
   function skipGame() {
-    if (!isAdminMode()) return;
+    if (!isAdmin) return;
     const finalSec = startTimeRef.current
       ? Math.floor((Date.now() - startTimeRef.current) / 1000)
       : 0;
@@ -614,7 +621,7 @@ export default function GuessCardGame({ onFinished, allowReplay = false, wishNam
         </div>
       </div>
 
-      {isAdminMode() ? (
+      {isAdmin ? (
         <button
           type="button"
           onClick={skipGame}

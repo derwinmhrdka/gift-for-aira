@@ -1,3 +1,4 @@
+import { AdminModeProvider } from "@/components/AdminModeProvider";
 import BackgroundMusicButton from "@/components/BackgroundMusicButton";
 import FloatingSnowman from "@/components/FloatingSnowman";
 import { SplashScreenProvider } from "@/components/SplashScreen";
@@ -48,12 +49,14 @@ export default function RootLayout({ children }) {
       <body
         className={`${jakarta.variable} font-sans text-lg leading-relaxed antialiased`}
       >
-        <SplashScreenProvider>
-          <Snowfall />
-          <FloatingSnowman />
-          <BackgroundMusicButton />
-          {children}
-        </SplashScreenProvider>
+        <AdminModeProvider>
+          <SplashScreenProvider>
+            <Snowfall />
+            <FloatingSnowman />
+            <BackgroundMusicButton />
+            {children}
+          </SplashScreenProvider>
+        </AdminModeProvider>
       </body>
     </html>
   );

@@ -1,3 +1,4 @@
+import AdminAccessFooter from "@/components/AdminAccessFooter";
 import BankTransferSection from "@/components/BankTransferSection";
 import BestWishesSection from "@/components/BestWishesSection";
 import LocationSection from "@/components/LocationSection";
@@ -124,6 +125,8 @@ export default async function Home() {
         >
           <BankTransferSection />
         </SectionShell>
+
+        <AdminAccessFooter />
       </div>
       </SparkBurstProvider>
     </div>

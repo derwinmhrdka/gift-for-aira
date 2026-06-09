@@ -3,12 +3,10 @@
 import GameModal from "@/components/GameModal";
 import DoorprizeGame from "@/components/games/DoorprizeGame";
 import GuessCardGame from "@/components/games/GuessCardGame";
+import { useAdminMode } from "@/components/AdminModeProvider";
 import {
-  canPlayGame,
-  getParticipationState,
-  hasCompletedAllGames,
-  isAdminMode,
-  markParticipatedIn,
+  fetchParticipationFromServer,
+  recordCardParticipation,
 } from "@/lib/gameParticipation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -74,30 +72,56 @@ function GameChoiceCard({ game, available, onSelect }) {
 }
 
 export default function WishGamesMenu({ onSendAgain, wishId, wishName }) {
+  const isAdmin = useAdminMode();
   const [activeGame, setActiveGame] = useState(null);
   const [participation, setParticipation] = useState({
     card: true,
     doorprize: true,
   });
   const [checked, setChecked] = useState(false);
+  const [cardError, setCardError] = useState("");
+  const [openingGame, setOpeningGame] = useState(false);
 
-  const refreshParticipation = useCallback(() => {
-    setParticipation(getParticipationState());
+  const refreshParticipation = useCallback(async () => {
+    const state = await fetchParticipationFromServer();
+    setParticipation({
+      card: state.card !== false,
+      doorprize: state.doorprize !== false,
+    });
+    setChecked(true);
   }, []);
 
   useEffect(() => {
     refreshParticipation();
-    setChecked(true);
-  }, [refreshParticipation]);
+  }, [refreshParticipation, isAdmin]);
 
   const active = GAMES.find((g) => g.id === activeGame);
-  const allDone = checked && hasCompletedAllGames();
+  const allDone =
+    checked && !participation.card && !participation.doorprize && !isAdmin;
 
-  function openGame(id) {
-    if (!canPlayGame(id)) {
+  async function openGame(id) {
+    if (!participation[id] || openingGame) {
       refreshParticipation();
       return;
     }
+
+    setCardError("");
+
+    if (id === "card" && !isAdmin) {
+      setOpeningGame(true);
+      try {
+        await recordCardParticipation(wishId);
+        await refreshParticipation();
+      } catch (err) {
+        setCardError(
+          err instanceof Error ? err.message : "Gagal membuka mini game.",
+        );
+        setOpeningGame(false);
+        return;
+      }
+      setOpeningGame(false);
+    }
+
     setActiveGame(id);
   }
 
@@ -107,7 +131,6 @@ export default function WishGamesMenu({ onSendAgain, wishId, wishName }) {
   }
 
   function handleCardFinished() {
-    markParticipatedIn("card");
     refreshParticipation();
   }
 
@@ -156,6 +179,12 @@ export default function WishGamesMenu({ onSendAgain, wishId, wishName }) {
           </>
         ) : null}
 
+        {cardError ? (
+          <p className="mt-2 text-xs text-red-600" role="alert">
+            {cardError}
+          </p>
+        ) : null}
+
         <button
           type="button"
           onClick={onSendAgain}
@@ -179,7 +208,7 @@ export default function WishGamesMenu({ onSendAgain, wishId, wishName }) {
         {activeGame === "card" ? (
           <GuessCardGame
             onFinished={handleCardFinished}
-            allowReplay={isAdminMode()}
+            allowReplay={isAdmin}
             wishName={wishName}
           />
         ) : null}

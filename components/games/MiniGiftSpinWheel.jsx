@@ -9,6 +9,7 @@ import {
   playSpinZonkSound,
   unlockGuessSounds,
 } from "@/lib/guessSounds";
+import { getVisitorId } from "@/lib/visitorId";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const SEGMENT_COLORS = [
@@ -183,11 +184,13 @@ export default function MiniGiftSpinWheel({ open, onClose, onFinished, wishName 
     setError("");
 
     try {
+      const visitorId = await getVisitorId();
       const res = await fetch("/api/presents/spin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           segmentIds: presents.map((present) => present.id),
+          visitorId,
         }),
       });
       const data = await res.json().catch(() => ({}));
