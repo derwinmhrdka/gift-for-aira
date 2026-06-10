@@ -49,10 +49,10 @@ const HOLD_INTERVAL_MS = 280;
 const MAX_PARTICLES = 52;
 const FADE_START = 38;
 const POLL_MS = 2000;
-const GRAVITY = 0.0042;
-const DRAG = 0.988;
-const SETTLE_SPEED = 0.018;
+const GRAVITY = 0.006;
+const DRAG = 0.992;
 const MAX_PREPOPULATE = 30;
+const LAYER_HEIGHT = 3.5;
 
 /** Glass dome area within snow-globe.png (percent of image box) */
 const GLASS = {
@@ -74,11 +74,49 @@ function formatCount(value) {
   return String(n);
 }
 
-function randomVelocity(scale = 0.06) {
-  return {
-    vx: (Math.random() - 0.5) * scale,
-    vy: (Math.random() - 0.5) * scale,
-  };
+function slotsInLayer(layer) {
+  return Math.min(1 + layer * 2, 9);
+}
+
+function floorYAt(x) {
+  const dx = x - GLOBE_CENTER.x;
+  const rimY =
+    GLOBE_CENTER.y +
+    Math.sqrt(Math.max(0, GLOBE_RADIUS * GLOBE_RADIUS - dx * dx));
+  const snowLift = 22;
+  const t = 1 - Math.min(1, Math.abs(dx) / (GLOBE_RADIUS * 0.9));
+  return rimY - snowLift * t;
+}
+
+function slotXOffset(slot, slots, layer) {
+  if (slots === 1) return 0;
+  const spread = 3 + layer * 2.8;
+  if (slots === 3) return [0, -spread, spread][slot] ?? 0;
+  const t = slot / (slots - 1) - 0.5;
+  return t * spread * 2;
+}
+
+function assignRestPosition(particles, excludeId) {
+  const n = particles.filter((p) => !p.fading && p.id !== excludeId).length;
+
+  let layer = 0;
+  let used = 0;
+  while (used + slotsInLayer(layer) <= n) {
+    used += slotsInLayer(layer);
+    layer += 1;
+  }
+  const slot = n - used;
+  const slots = slotsInLayer(layer);
+  const restX = 50 + slotXOffset(slot, slots, layer);
+  const restY = GLOBE_FLOOR_Y - layer * LAYER_HEIGHT;
+
+  return clampToGlobe(restX, restY);
+}
+
+function spawnFromTop(xHint) {
+  const x = xHint ?? 40 + Math.random() * 20;
+  const clamped = clampToGlobe(x, 10);
+  return { x: clamped.x, y: 6 + Math.random() * 10 };
 }
 
 function clampToGlobe(x, y, radius = GLOBE_RADIUS) {
@@ -93,29 +131,24 @@ function clampToGlobe(x, y, radius = GLOBE_RADIUS) {
   };
 }
 
-function createParticle(type, x, y, id, velocity) {
-  const base = randomVelocity(0.045);
-  const rawX = x ?? 24 + Math.random() * 52;
-  const rawY = y ?? 22 + Math.random() * 42;
-  const { x: spawnX, y: spawnY } = clampToGlobe(rawX, rawY);
-  const restY = GLOBE_FLOOR_Y - Math.random() * 10;
-  const restX = spawnX + (Math.random() - 0.5) * 8;
-  const clampedRest = clampToGlobe(restX, restY);
+function createParticle(type, xHint, id, existing = [], velocity) {
+  const spawn = spawnFromTop(xHint);
+  const rest = assignRestPosition(existing, id);
 
   return {
     id,
     type,
-    x: spawnX,
-    y: spawnY,
-    vx: velocity?.vx ?? base.vx,
-    vy: velocity?.vy ?? base.vy,
+    x: spawn.x,
+    y: spawn.y,
+    vx: velocity?.vx ?? (Math.random() - 0.5) * 0.012,
+    vy: velocity?.vy ?? 0.01 + Math.random() * 0.008,
     opacity: 0.75 + Math.random() * 0.2,
     fading: false,
     settled: false,
     size: 7 + Math.random() * 4,
     rotate: Math.random() * 360,
-    restX: clampedRest.x,
-    restY: clampedRest.y,
+    restX: rest.x,
+    restY: rest.y,
   };
 }
 
@@ -130,21 +163,22 @@ function prePopulate(counts, idRef) {
   for (const { id } of REACTIONS) {
     const n = Math.round((counts[id] ?? 0) * scale);
     for (let i = 0; i < n; i += 1) {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * GLOBE_RADIUS * 0.75;
-      const x = GLOBE_CENTER.x + Math.cos(angle) * dist;
-      const y = GLOBE_FLOOR_Y - Math.random() * 14;
-      const clamped = clampToGlobe(x, y);
+      const pid = `pre-${++idRef.current}`;
+      const rest = assignRestPosition(result, pid);
       result.push({
-        ...createParticle(id, clamped.x, clamped.y, `pre-${++idRef.current}`, {
-          vx: 0,
-          vy: 0,
-        }),
-        settled: true,
+        id: pid,
+        type: id,
+        x: rest.x,
+        y: rest.y,
         vx: 0,
         vy: 0,
-        x: clamped.x,
-        y: clamped.y,
+        opacity: 0.75 + Math.random() * 0.2,
+        fading: false,
+        settled: true,
+        size: 7 + Math.random() * 4,
+        rotate: Math.random() * 360,
+        restX: rest.x,
+        restY: rest.y,
       });
     }
   }
@@ -300,7 +334,7 @@ export default function SnowGlobeSection() {
       const n = Math.max(1, next.length - FADE_START + 1);
       for (let i = 0; i < n && i < next.length; i += 1) next[i].fading = true;
     }
-    next.push(createParticle(type, x, y, key));
+    next.push(createParticle(type, x, key, next));
     particlesRef.current = next;
     setParticles([...next]);
   }, []); // setParticles only when count changes — positions updated in RAF
@@ -402,7 +436,7 @@ export default function SnowGlobeSection() {
             vy *= DRAG ** dt;
             x += vx * dt;
             y += vy * dt;
-            rotate += 0.06 * dt;
+            rotate += 0.04 * dt;
 
             const dx = x - GLOBE_CENTER.x;
             const dy = y - GLOBE_CENTER.y;
@@ -415,28 +449,33 @@ export default function SnowGlobeSection() {
               y = GLOBE_CENTER.y + ny * GLOBE_RADIUS;
               const dot = vx * nx + vy * ny;
               if (dot > 0) {
-                vx -= dot * nx * 0.85;
-                vy -= dot * ny * 0.85;
+                vx -= dot * nx;
+                vy -= dot * ny;
               }
-              vx *= 0.9;
-              vy *= 0.9;
+              vx *= 0.5;
+              vy *= 0.5;
             }
 
-            const speed = Math.hypot(vx, vy);
-            if (speed < SETTLE_SPEED && y >= restY - 3) {
-              settled = true;
-              vx = 0;
-              vy = 0;
-            } else if (speed < 0.003) {
-              vx = 0;
-              vy = 0;
+            const floor = floorYAt(x);
+            if (y >= floor) {
+              y = floor;
+              if (vy > 0) vy = 0;
+              vx *= 0.65;
+              if (Math.abs(vx) < 0.012) {
+                settled = true;
+                vx = 0;
+                vy = 0;
+                const rest = assignRestPosition(next, p.id);
+                restX = rest.x;
+                restY = rest.y;
+              }
             }
           } else if (
-            Math.abs(restX - x) > 0.08 ||
-            Math.abs(restY - y) > 0.08
+            Math.abs(restX - x) > 0.06 ||
+            Math.abs(restY - y) > 0.06
           ) {
-            x += (restX - x) * 0.1;
-            y += (restY - y) * 0.1;
+            x += (restX - x) * 0.14;
+            y += (restY - y) * 0.14;
           } else {
             x = restX;
             y = restY;
@@ -488,7 +527,7 @@ export default function SnowGlobeSection() {
         const dx = p.x - ox;
         const dy = p.y - oy;
         const dist = Math.hypot(dx, dy) || 1;
-        const force = 0.12 + Math.random() * 0.18;
+        const force = 0.1 + Math.random() * 0.14;
         const clamped = clampToGlobe(p.x, p.y);
         return {
           ...p,
@@ -496,14 +535,11 @@ export default function SnowGlobeSection() {
           y: clamped.y,
           settled: false,
           vx:
-            p.vx * 0.4 +
-            (dx / dist) * force +
-            (Math.random() - 0.5) * 0.06,
+            (dx / dist) * force * 0.6 + (Math.random() - 0.5) * 0.05,
           vy:
-            p.vy * 0.4 +
-            (dy / dist) * force +
-            (Math.random() - 0.5) * 0.06 -
-            0.03,
+            (dy / dist) * force * 0.6 -
+            0.08 -
+            Math.random() * 0.06,
           fading: false,
           opacity: Math.min(0.95, p.opacity + 0.08),
         };
@@ -553,13 +589,8 @@ export default function SnowGlobeSection() {
 
   const handleReaction = useCallback(
     (type, buttonEl) => {
-      const angle = Math.random() * Math.PI * 0.85 + Math.PI * 0.075;
-      const dist = Math.random() * GLOBE_RADIUS * 0.55;
-      const spawn = clampToGlobe(
-        GLOBE_CENTER.x + Math.cos(angle) * dist,
-        GLOBE_CENTER.y - Math.abs(Math.sin(angle)) * dist * 0.7,
-      );
-      spawnParticle(type, spawn.x, spawn.y);
+      const spawn = spawnFromTop(40 + Math.random() * 20);
+      spawnParticle(type, spawn.x, undefined);
       postReaction(type, spawn.x, spawn.y);
       setButtonBounce(type);
       window.setTimeout(() => setButtonBounce(null), 500);
