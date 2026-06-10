@@ -126,7 +126,7 @@ export default async function Home() {
         </SectionShell>
 
         <footer className="relative z-10 mt-10 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-4 pb-6 text-center text-[10px] leading-relaxed text-slate-400">
-          <span>Developer by Mahardiora</span>
+          <span>Developed by Mahardiora</span>
           <span aria-hidden className="text-slate-300">
             ·
           </span>
