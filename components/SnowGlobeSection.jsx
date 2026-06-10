@@ -8,40 +8,38 @@ const REACTIONS = [
   {
     id: "love",
     label: "Love",
-    iconClass: "text-rose-500",
-    particleClass: "text-rose-300",
-    bgClass: "bg-rose-50 hover:bg-rose-100 active:bg-rose-100",
-    ringClass: "focus-visible:ring-rose-300",
+    particleClass: "text-rose-400",
+    btnFrom: "#f43f5e",
+    btnTo: "#e11d48",
     burstClass: "text-rose-400",
   },
   {
     id: "like",
     label: "Like",
-    iconClass: "text-amber-500",
-    particleClass: "text-amber-200",
-    bgClass: "bg-amber-50 hover:bg-amber-100 active:bg-amber-100",
-    ringClass: "focus-visible:ring-amber-300",
+    particleClass: "text-amber-400",
+    btnFrom: "#f59e0b",
+    btnTo: "#d97706",
     burstClass: "text-amber-400",
   },
   {
     id: "snowflake",
-    label: "Snowflake",
-    iconClass: "text-sky-500",
-    particleClass: "text-sky-300",
-    bgClass: "bg-sky-50 hover:bg-sky-100 active:bg-sky-100",
-    ringClass: "focus-visible:ring-sky-300",
+    label: "Salju",
+    particleClass: "text-sky-400",
+    btnFrom: "#38bdf8",
+    btnTo: "#0284c7",
     burstClass: "text-sky-400",
   },
 ];
 
-const HOLD_INTERVAL_MS = 320;
-
-const MAX_PARTICLES = 48;
-const FADE_START = 36;
+const HOLD_INTERVAL_MS = 280;
+const MAX_PARTICLES = 52;
+const FADE_START = 38;
 const POLL_MS = 2000;
-const GRAVITY = 0.0055;
-const DRAG = 0.988;
-const SETTLE_SPEED = 0.014;
+const GRAVITY = 0.005;
+const DRAG = 0.986;
+const SETTLE_SPEED = 0.012;
+
+const MAX_PREPOPULATE = 30;
 
 function formatCount(value) {
   const n = Number(value) || 0;
@@ -52,18 +50,17 @@ function formatCount(value) {
   return String(n);
 }
 
-function randomVelocity() {
+function randomVelocity(scale = 0.06) {
   return {
-    vx: (Math.random() - 0.5) * 0.06,
-    vy: (Math.random() - 0.5) * 0.06,
+    vx: (Math.random() - 0.5) * scale,
+    vy: (Math.random() - 0.5) * scale,
   };
 }
 
 function createParticle(type, x, y, id, velocity) {
   const base = randomVelocity();
-  const spawnX = x ?? 20 + Math.random() * 60;
-  const spawnY = y ?? 15 + Math.random() * 55;
-
+  const spawnX = x ?? 22 + Math.random() * 56;
+  const spawnY = y ?? 18 + Math.random() * 50;
   return {
     id,
     type,
@@ -71,17 +68,67 @@ function createParticle(type, x, y, id, velocity) {
     y: spawnY,
     vx: velocity?.vx ?? base.vx,
     vy: velocity?.vy ?? base.vy,
-    opacity: 0.55 + Math.random() * 0.35,
+    opacity: 0.7 + Math.random() * 0.25,
     fading: false,
     settled: false,
-    size: 7 + Math.random() * 4,
+    size: 8 + Math.random() * 5,
     rotate: Math.random() * 360,
     restX: spawnX,
-    restY: 58 + Math.random() * 16,
+    restY: 60 + Math.random() * 14,
   };
 }
 
-function SoftSnowflake({ size, className = "" }) {
+function prePopulate(counts, idRef) {
+  const total = (counts.love ?? 0) + (counts.like ?? 0) + (counts.snowflake ?? 0);
+  if (total === 0) return [];
+
+  const scale = Math.min(1, MAX_PREPOPULATE / total);
+  const result = [];
+
+  for (const { id } of REACTIONS) {
+    const n = Math.round((counts[id] ?? 0) * scale);
+    for (let i = 0; i < n; i += 1) {
+      const x = 16 + Math.random() * 68;
+      const restY = 57 + Math.random() * 16;
+      result.push({
+        ...createParticle(id, x, restY, `pre-${++idRef.current}`, { vx: 0, vy: 0 }),
+        settled: true,
+        vx: 0,
+        vy: 0,
+        y: restY,
+      });
+    }
+  }
+
+  return result;
+}
+
+function HeartSvg({ size, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M12 21C12 21 3 14.5 3 8.5C3 5.4 5.4 3 8.5 3C10.2 3 11.7 3.9 12 5C12.3 3.9 13.8 3 15.5 3C18.6 3 21 5.4 21 8.5C21 14.5 12 21 12 21Z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+    </svg>
+  );
+}
+
+function ThumbSvg({ size, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M14 9V5.5C14 4.1 12.9 3 11.5 3L8 10v11h9.7c.9 0 1.7-.6 1.9-1.5L21 13c.2-1.1-.5-2-1.6-2H14z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      <path d="M6 21H4C3.4 21 3 20.6 3 20V11C3 10.4 3.4 10 4 10H6V21Z" fill="currentColor" opacity="0.75" />
+    </svg>
+  );
+}
+
+function SnowflakeSvg({ size, className = "" }) {
   return (
     <svg
       width={size}
@@ -89,127 +136,34 @@ function SoftSnowflake({ size, className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
       aria-hidden
     >
-      <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
-      <path d="M6.8 6.8l2.8 2.8M14.4 14.4l2.8 2.8M17.2 6.8l-2.8 2.8M9.6 14.4l-2.8 2.8" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function GlobeParticle({ type, size, rotate, className = "" }) {
-  const reaction = REACTIONS.find((item) => item.id === type);
-  const glow = "drop-shadow-[0_0_3px_rgba(255,255,255,0.85)]";
-
-  if (type === "snowflake") {
-    return (
-      <SoftSnowflake
-        size={size}
-        className={`${reaction?.particleClass ?? "text-sky-300"} ${glow} ${className}`}
-      />
-    );
-  }
-
-  if (type === "love") {
-    return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 12 12"
-        className={`${reaction?.particleClass ?? "text-rose-300"} ${glow} ${className}`}
-        aria-hidden
-      >
-        <circle cx="6" cy="6" r="2.2" fill="currentColor" opacity="0.75" />
-        <circle cx="6" cy="6" r="1" fill="white" opacity="0.45" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 12 12"
-      className={`${reaction?.particleClass ?? "text-amber-200"} ${glow} ${className}`}
-      aria-hidden
-    >
-      <circle cx="6" cy="6" r="2.4" fill="currentColor" opacity="0.7" />
-      <path
-        d="M6 3.5v5M4 5.5l2-1.5 2 1.5"
-        stroke="white"
-        strokeWidth="0.8"
-        strokeLinecap="round"
-        opacity="0.55"
-      />
-    </svg>
-  );
-}
-
-function ReactionUiIcon({ type, size = 24, className = "" }) {
-  const reaction = REACTIONS.find((item) => item.id === type);
-  const color = reaction?.iconClass ?? "text-slate-500";
-
-  if (type === "love") {
-    return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        className={`${color} ${className}`}
-        aria-hidden
-      >
-        <path
-          d="M12 20.8s-6.8-4.4-6.8-9.2C5.2 8.6 7.4 6.4 9.8 6.4c1.4 0 2.7.7 3.5 1.8.8-1.1 2.1-1.8 3.5-1.8 2.4 0 4.6 2.2 4.6 5.2 0 4.8-6.8 9.2-6.8 9.2z"
-          fill="currentColor"
-        />
-      </svg>
-    );
-  }
-
-  if (type === "like") {
-    return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        className={`${color} ${className}`}
-        aria-hidden
-      >
-        <path
-          d="M9.2 20.4V9.1H6.4c-.9 0-1.6.7-1.6 1.6v7.3c0 .9.7 1.6 1.6 1.6h2.8z"
-          fill="currentColor"
-        />
-        <path
-          d="M9.2 9.1l6.1-3.4c1.2-.7 2.7.2 2.7 1.6v2.1l3.2 5.4c.5.9-.1 2-1.1 2h-11V9.1z"
-          fill="currentColor"
-          opacity="0.92"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`${color} ${className}`}
-      aria-hidden
-    >
-      <path d="M12 2v20M2 12h20M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" />
+      <line x1="12" y1="2" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <line x1="5" y1="5" x2="19" y2="19" />
+      <line x1="19" y1="5" x2="5" y2="19" />
       <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
     </svg>
   );
+}
+
+function GlobeParticle({ type, size, className = "" }) {
+  const reaction = REACTIONS.find((r) => r.id === type);
+  const cls = `${reaction?.particleClass ?? "text-sky-300"} drop-shadow-[0_0_4px_rgba(255,255,255,0.9)] ${className}`;
+
+  if (type === "love") return <HeartSvg size={size} className={cls} />;
+  if (type === "like") return <ThumbSvg size={size} className={cls} />;
+  return <SnowflakeSvg size={size} className={cls} />;
+}
+
+function ReactionUiIcon({ type, size = 24, className = "" }) {
+  if (type === "love") return <HeartSvg size={size} className={className} />;
+  if (type === "like") return <ThumbSvg size={size} className={className} />;
+  return <SnowflakeSvg size={size} className={className} />;
 }
 
 function ReactionButton({ reaction, onReact }) {
@@ -229,9 +183,7 @@ function ReactionButton({ reaction, onReact }) {
   const addBurst = useCallback(() => {
     const id = ++burstIdRef.current;
     setBursts((prev) => [...prev, { id }]);
-    window.setTimeout(() => {
-      setBursts((prev) => prev.filter((burst) => burst.id !== id));
-    }, 560);
+    window.setTimeout(() => setBursts((prev) => prev.filter((b) => b.id !== id)), 560);
   }, []);
 
   const fire = useCallback(() => {
@@ -240,13 +192,10 @@ function ReactionButton({ reaction, onReact }) {
   }, [addBurst, onReact, reaction.id]);
 
   const startHold = useCallback(
-    (event) => {
-      event.preventDefault();
-      if (event.button !== 0) return;
-      if (holdTimerRef.current) {
-        clearInterval(holdTimerRef.current);
-        holdTimerRef.current = null;
-      }
+    (e) => {
+      e.preventDefault();
+      if (e.button !== undefined && e.button !== 0) return;
+      if (holdTimerRef.current) { clearInterval(holdTimerRef.current); holdTimerRef.current = null; }
       setIsHolding(true);
       fire();
       holdTimerRef.current = window.setInterval(fire, HOLD_INTERVAL_MS);
@@ -265,18 +214,36 @@ function ReactionButton({ reaction, onReact }) {
       onPointerCancel={stopHold}
       aria-label={reaction.label}
       aria-pressed={isHolding}
-      className={`relative inline-flex h-12 w-12 touch-none select-none items-center justify-center rounded-2xl border border-white/70 shadow-md shadow-sky-200/30 transition active:scale-95 sm:h-14 sm:w-14 ${reaction.bgClass} ${reaction.ringClass} ${isHolding ? "scale-95 ring-2 ring-sky-300/60" : ""} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
+      className="group relative touch-none select-none focus:outline-none"
     >
       {bursts.map((burst) => (
         <span
           key={burst.id}
-          className={`aira-reaction-burst absolute left-1/2 bottom-[calc(100%+2px)] ${reaction.burstClass}`}
+          className={`aira-reaction-burst absolute left-1/2 bottom-[calc(100%+4px)] ${reaction.burstClass}`}
         >
-          <ReactionUiIcon type={reaction.id} size={18} />
+          <ReactionUiIcon type={reaction.id} size={20} />
         </span>
       ))}
-      <ReactionUiIcon type={reaction.id} size={26} className="sm:hidden" />
-      <ReactionUiIcon type={reaction.id} size={30} className="hidden sm:block" />
+      <span
+        className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-100 sm:h-16 sm:w-16 ${isHolding ? "scale-90" : "scale-100 group-hover:scale-105"}`}
+        style={{
+          background: `linear-gradient(145deg, ${reaction.btnFrom}, ${reaction.btnTo})`,
+          boxShadow: isHolding
+            ? `0 2px 6px ${reaction.btnTo}55, inset 0 2px 4px rgba(0,0,0,0.15)`
+            : `0 4px 14px ${reaction.btnTo}55, 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.35)`,
+        }}
+      >
+        <ReactionUiIcon
+          type={reaction.id}
+          size={28}
+          className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] sm:hidden"
+        />
+        <ReactionUiIcon
+          type={reaction.id}
+          size={32}
+          className="hidden text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] sm:block"
+        />
+      </span>
     </button>
   );
 }
@@ -284,12 +251,13 @@ function ReactionButton({ reaction, onReact }) {
 export default function SnowGlobeSection() {
   const [counts, setCounts] = useState({ love: 0, like: 0, snowflake: 0 });
   const [particles, setParticles] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
   const particlesRef = useRef([]);
   const seenEventIdsRef = useRef(new Set());
   const lastPollRef = useRef(Date.now());
   const rafRef = useRef(null);
-  const localParticleIdRef = useRef(0);
+  const localIdRef = useRef(0);
   const globeRef = useRef(null);
   const [isShaking, setIsShaking] = useState(false);
 
@@ -301,9 +269,7 @@ export default function SnowGlobeSection() {
         like: Number(nextCounts.like) || 0,
         snowflake: Number(nextCounts.snowflake) || 0,
       };
-
       if (source === "airtable") return next;
-
       return {
         love: Math.max(prev.love, next.love),
         like: Math.max(prev.like, next.like),
@@ -313,48 +279,62 @@ export default function SnowGlobeSection() {
   }, []);
 
   const spawnParticle = useCallback((type, x, y, eventId) => {
-    const dedupeKey = eventId ?? `local-${++localParticleIdRef.current}`;
+    const key = eventId ?? `local-${++localIdRef.current}`;
     if (eventId && seenEventIdsRef.current.has(eventId)) return;
     if (eventId) seenEventIdsRef.current.add(eventId);
 
     const next = [...particlesRef.current];
     if (next.length >= MAX_PARTICLES) {
-      const fadeCount = Math.max(1, next.length - FADE_START + 1);
-      for (let i = 0; i < fadeCount && i < next.length; i += 1) {
-        next[i].fading = true;
-      }
+      const n = Math.max(1, next.length - FADE_START + 1);
+      for (let i = 0; i < n && i < next.length; i += 1) next[i].fading = true;
     }
-
-    next.push(createParticle(type, x, y, dedupeKey));
+    next.push(createParticle(type, x, y, key));
     particlesRef.current = next;
-    setParticles(next);
+    setParticles([...next]);
   }, []);
 
   const syncFromServer = useCallback(
     async (sinceMs, { includeEvents = true } = {}) => {
       try {
-        const query = sinceMs > 0 ? `?since=${sinceMs}` : "";
-        const res = await fetch(`/api/reactions${query}`, { cache: "no-store" });
+        const q = sinceMs > 0 ? `?since=${sinceMs}` : "";
+        const res = await fetch(`/api/reactions${q}`, { cache: "no-store" });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
-
         applyCounts(data.counts, data.source);
-
         if (includeEvents) {
-          for (const event of data.events ?? []) {
-            spawnParticle(event.type, event.x, event.y, event.id);
+          for (const ev of data.events ?? []) {
+            spawnParticle(ev.type, ev.x, ev.y, ev.id);
           }
         }
-      } catch {
-        /* ignore polling errors */
-      }
+      } catch { /* ignore */ }
     },
     [applyCounts, spawnParticle],
   );
 
   useEffect(() => {
     lastPollRef.current = Date.now();
-    syncFromServer(0, { includeEvents: false });
+
+    async function loadInitial() {
+      try {
+        const res = await fetch("/api/reactions", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+
+        const initialCounts = data.counts ?? { love: 0, like: 0, snowflake: 0 };
+        applyCounts(initialCounts, data.source);
+
+        const pre = prePopulate(initialCounts, localIdRef);
+        if (pre.length > 0) {
+          particlesRef.current = pre;
+          setParticles([...pre]);
+        }
+        setLoaded(true);
+      } catch {
+        setLoaded(true);
+      }
+    }
+
+    loadInitial();
 
     const poll = setInterval(() => {
       const since = lastPollRef.current;
@@ -363,24 +343,13 @@ export default function SnowGlobeSection() {
     }, POLL_MS);
 
     return () => clearInterval(poll);
-  }, [syncFromServer]);
+  }, [applyCounts, syncFromServer]);
 
   useEffect(() => {
     function tick() {
       const next = [];
-      for (const particle of particlesRef.current) {
-        let {
-          x,
-          y,
-          vx,
-          vy,
-          opacity,
-          fading,
-          rotate,
-          settled,
-          restX,
-          restY,
-        } = particle;
+      for (const p of particlesRef.current) {
+        let { x, y, vx, vy, opacity, fading, rotate, settled, restX, restY } = p;
 
         if (!fading) {
           if (!settled) {
@@ -389,12 +358,12 @@ export default function SnowGlobeSection() {
             vy *= DRAG;
             x += vx;
             y += vy;
-            rotate += 0.12;
+            rotate += 0.1;
 
             const dx = x - 50;
             const dy = y - 50;
             const dist = Math.hypot(dx, dy);
-            const maxDist = 38;
+            const maxDist = 37;
 
             if (dist > maxDist) {
               const nx = dx / dist;
@@ -402,12 +371,11 @@ export default function SnowGlobeSection() {
               x = 50 + nx * maxDist;
               y = 50 + ny * maxDist;
               const dot = vx * nx + vy * ny;
-              vx = (vx - 2 * dot * nx) * 0.55;
-              vy = (vy - 2 * dot * ny) * 0.55;
+              vx = (vx - 2 * dot * nx) * 0.5;
+              vy = (vy - 2 * dot * ny) * 0.5;
             }
 
-            const speed = Math.hypot(vx, vy);
-            if (speed < SETTLE_SPEED && y >= restY - 5) {
+            if (Math.hypot(vx, vy) < SETTLE_SPEED && y >= restY - 4) {
               settled = true;
               vx = 0;
               vy = 0;
@@ -415,78 +383,56 @@ export default function SnowGlobeSection() {
           } else {
             x += (restX - x) * 0.04;
             y += (restY - y) * 0.04;
-            rotate += 0.02;
+            rotate += 0.015;
           }
         }
 
-        if (fading) {
-          opacity -= 0.012;
-        }
+        if (fading) opacity -= 0.011;
 
-        if (opacity > 0.04) {
-          next.push({
-            ...particle,
-            x,
-            y,
-            vx,
-            vy,
-            opacity,
-            fading,
-            rotate,
-            settled,
-            restX,
-            restY,
-          });
+        if (opacity > 0.03) {
+          next.push({ ...p, x, y, vx, vy, opacity, fading, rotate, settled, restX, restY });
         }
       }
 
       particlesRef.current = next;
-      setParticles(next);
+      setParticles([...next]);
       rafRef.current = requestAnimationFrame(tick);
     }
 
     rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  const scatterParticles = useCallback((originX, originY) => {
-    const current = particlesRef.current;
-    if (current.length === 0) return;
-
-    const next = current.map((particle) => {
-      const dx = particle.x - originX;
-      const dy = particle.y - originY;
+  const scatterParticles = useCallback((ox, oy) => {
+    const cur = particlesRef.current;
+    if (cur.length === 0) return;
+    const next = cur.map((p) => {
+      const dx = p.x - ox;
+      const dy = p.y - oy;
       const dist = Math.hypot(dx, dy) || 1;
-      const nx = dx / dist;
-      const ny = dy / dist;
-      const force = 0.22 + Math.random() * 0.32;
-
+      const force = 0.25 + Math.random() * 0.35;
       return {
-        ...particle,
+        ...p,
         settled: false,
-        vx: particle.vx + nx * force + (Math.random() - 0.5) * 0.14,
-        vy: particle.vy + ny * force + (Math.random() - 0.5) * 0.14 - 0.06,
+        vx: p.vx + (dx / dist) * force + (Math.random() - 0.5) * 0.12,
+        vy: p.vy + (dy / dist) * force + (Math.random() - 0.5) * 0.12 - 0.05,
         fading: false,
+        opacity: Math.min(0.95, p.opacity + 0.1),
       };
     });
-
     particlesRef.current = next;
-    setParticles(next);
+    setParticles([...next]);
   }, []);
 
-  function handleGlobeClick(event) {
-    event.stopPropagation();
-
+  function handleGlobeClick(e) {
+    e.stopPropagation();
     const globe = globeRef.current;
     if (!globe) return;
-
     const rect = globe.getBoundingClientRect();
-    const originX = ((event.clientX - rect.left) / rect.width) * 100;
-    const originY = ((event.clientY - rect.top) / rect.height) * 100;
-
-    scatterParticles(originX, originY);
+    scatterParticles(
+      ((e.clientX - rect.left) / rect.width) * 100,
+      ((e.clientY - rect.top) / rect.height) * 100,
+    );
     setIsShaking(true);
     window.setTimeout(() => setIsShaking(false), 480);
   }
@@ -502,21 +448,17 @@ export default function SnowGlobeSection() {
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           applyCounts(data.counts, data.source);
-          if (data.event?.id) {
-            seenEventIdsRef.current.add(data.event.id);
-          }
+          if (data.event?.id) seenEventIdsRef.current.add(data.event.id);
         }
-      } catch {
-        /* local particle already shown */
-      }
+      } catch { /* ignore */ }
     },
     [applyCounts],
   );
 
   const handleReaction = useCallback(
     (type) => {
-      const x = 10 + Math.random() * 80;
-      const y = 15 + Math.random() * 55;
+      const x = 12 + Math.random() * 76;
+      const y = 15 + Math.random() * 52;
       spawnParticle(type, x, y);
       postReaction(type, x, y);
     },
@@ -530,46 +472,82 @@ export default function SnowGlobeSection() {
           id="snow-globe-heading"
           className="font-display text-center text-xl font-bold text-aira-navy sm:text-2xl"
         >
-          berikan dukunganmu!
+          Kirim dukunganmu!
         </h2>
-        <p className="mt-2 text-center text-sm leading-relaxed text-slate-600">
-          Spread the love!
+        <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
+          Klik ikon — hati, like, atau salju melayang di bola kacanya 🧸
         </p>
 
-        <div className="mt-6 flex flex-col items-center gap-5 sm:flex-row sm:items-end sm:justify-center sm:gap-6">
-          <div className="flex w-full max-w-[17rem] flex-col items-center sm:max-w-[18rem]">
-            <div className="relative w-full">
+        <div className="mt-7 flex flex-col items-center gap-6 sm:flex-row sm:items-end sm:justify-center sm:gap-8">
+          <div className="flex flex-col items-center">
+            <div className="relative" style={{ width: "220px" }}>
+              {/* Globe dome */}
               <button
-                type="button"
                 ref={globeRef}
+                type="button"
                 onClick={handleGlobeClick}
                 aria-label="Goyangkan bola kaca"
-                className={`relative mx-auto block aspect-square w-full max-w-[15rem] cursor-pointer rounded-full transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 ${isShaking ? "aira-globe-shake" : ""}`}
+                className={`relative mx-auto block cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 ${isShaking ? "aira-globe-shake" : ""}`}
                 style={{
+                  width: "200px",
+                  height: "200px",
                   background:
-                    "radial-gradient(circle at 32% 24%, rgba(255,255,255,0.98) 0%, rgba(224,242,254,0.72) 18%, rgba(186,230,253,0.45) 38%, rgba(125,211,252,0.28) 58%, rgba(56,189,248,0.18) 78%, rgba(14,116,144,0.12) 100%)",
+                    "radial-gradient(circle at 34% 26%, rgba(255,255,255,0.96) 0%, rgba(219,239,254,0.78) 22%, rgba(186,230,253,0.52) 42%, rgba(125,211,252,0.3) 62%, rgba(56,189,248,0.15) 80%, rgba(7,89,133,0.1) 100%)",
                   boxShadow:
-                    "0 10px 28px rgba(56,189,248,0.22), 0 4px 12px rgba(15,23,42,0.08), inset 0 10px 24px rgba(255,255,255,0.85), inset 0 -14px 28px rgba(56,189,248,0.14), inset 0 0 0 1px rgba(255,255,255,0.55)",
+                    "0 12px 40px rgba(14,116,144,0.2), 0 4px 12px rgba(15,23,42,0.1), inset 0 12px 28px rgba(255,255,255,0.9), inset 0 -16px 32px rgba(56,189,248,0.18), inset 0 0 0 1.5px rgba(255,255,255,0.6)",
                 }}
               >
                 <div className="absolute inset-0 overflow-hidden rounded-full">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_78%,rgba(186,230,253,0.35),transparent_52%)]" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(255,255,255,0.25),transparent_45%)]" />
+                  {/* Sky gradient */}
+                  <div className="absolute inset-0"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse at 50% 30%, rgba(224,242,254,0.55) 0%, transparent 70%)",
+                    }}
+                  />
 
-                  <div className="pointer-events-none absolute bottom-[18%] left-[12%] h-10 w-6 rounded-full bg-emerald-700/55 blur-[1px]" />
-                  <div className="pointer-events-none absolute bottom-[20%] right-[16%] h-8 w-5 rounded-full bg-emerald-700/45 blur-[1px]" />
-                  <div className="pointer-events-none absolute bottom-[24%] left-[28%] h-12 w-7 rounded-full bg-emerald-800/50 blur-[1px]" />
+                  {/* Snow ground */}
+                  <div
+                    className="pointer-events-none absolute bottom-0 left-0 right-0"
+                    style={{
+                      height: "34%",
+                      background:
+                        "radial-gradient(ellipse at 50% 100%, rgba(240,249,255,0.95) 0%, rgba(224,242,254,0.88) 50%, rgba(186,230,253,0.6) 80%, transparent 100%)",
+                    }}
+                  />
+                  {/* Snow bump */}
+                  <div
+                    className="pointer-events-none absolute left-0 right-0"
+                    style={{
+                      bottom: "29%",
+                      height: "12%",
+                      background:
+                        "radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.9) 0%, rgba(224,242,254,0.7) 60%, transparent 100%)",
+                      filter: "blur(3px)",
+                    }}
+                  />
 
-                  <div className="pointer-events-none absolute inset-x-[18%] bottom-[8%] flex justify-center">
+                  {/* Pine trees */}
+                  <div className="pointer-events-none absolute" style={{ left: "10%", bottom: "28%", width: "14%", height: "22%", background: "linear-gradient(to bottom, #166534, #14532d)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.7 }} />
+                  <div className="pointer-events-none absolute" style={{ left: "8%", bottom: "28%", width: "18%", height: "30%", background: "linear-gradient(to bottom, #15803d, #166534)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.55 }} />
+                  <div className="pointer-events-none absolute" style={{ right: "9%", bottom: "28%", width: "14%", height: "22%", background: "linear-gradient(to bottom, #166534, #14532d)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.65 }} />
+                  <div className="pointer-events-none absolute" style={{ right: "7%", bottom: "28%", width: "18%", height: "28%", background: "linear-gradient(to bottom, #15803d, #166534)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.5 }} />
+                  {/* Snow on trees */}
+                  <div className="pointer-events-none absolute" style={{ left: "10%", bottom: "46%", width: "14%", height: "6%", background: "rgba(255,255,255,0.75)", clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)", filter: "blur(0.5px)" }} />
+                  <div className="pointer-events-none absolute" style={{ right: "9%", bottom: "46%", width: "14%", height: "6%", background: "rgba(255,255,255,0.7)", clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)", filter: "blur(0.5px)" }} />
+
+                  {/* Baby */}
+                  <div className="pointer-events-none absolute flex justify-center" style={{ bottom: "28%", left: "22%", right: "22%" }}>
                     <Image
                       src="/baby.png"
                       alt=""
                       width={120}
                       height={120}
-                      className="h-auto w-[42%] max-w-[5.5rem] object-contain drop-shadow-[0_4px_10px_rgba(15,23,42,0.12)]"
+                      className="h-auto w-full max-w-[5.5rem] object-contain drop-shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
                     />
                   </div>
 
+                  {/* Particles */}
                   {particles.map((particle) => (
                     <div
                       key={particle.id}
@@ -581,60 +559,101 @@ export default function SnowGlobeSection() {
                         transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
                       }}
                     >
-                      <GlobeParticle
-                        type={particle.type}
-                        size={particle.size}
-                        rotate={particle.rotate}
-                      />
+                      <GlobeParticle type={particle.type} size={particle.size} />
                     </div>
                   ))}
 
-                  <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.3),transparent_50%)]" />
+                  {/* Bottom inner glow */}
+                  <div className="pointer-events-none absolute inset-0 rounded-full"
+                    style={{ background: "radial-gradient(ellipse at 50% 130%, rgba(255,255,255,0.35) 0%, transparent 55%)" }}
+                  />
                 </div>
 
-                <div className="pointer-events-none absolute inset-[3%] rounded-full border border-white/35" />
-                <div className="pointer-events-none absolute inset-[8%] rounded-full border border-sky-100/20" />
-                <div className="pointer-events-none absolute left-[10%] top-[8%] h-[36%] w-[42%] rounded-full bg-gradient-to-br from-white/75 via-white/25 to-transparent blur-[2px]" />
-                <div className="pointer-events-none absolute bottom-[12%] right-[14%] h-4 w-6 rounded-full bg-white/20 blur-[2px]" />
+                {/* Glass shine overlays — on top of content */}
+                <div className="pointer-events-none absolute inset-0 rounded-full"
+                  style={{ background: "radial-gradient(ellipse at 32% 18%, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.18) 28%, transparent 52%)" }}
+                />
+                <div className="pointer-events-none absolute rounded-full border border-white/40" style={{ inset: "4px" }} />
+                <div className="pointer-events-none absolute rounded-full border border-sky-100/25" style={{ inset: "10px" }} />
+                <div className="pointer-events-none absolute" style={{ left: "14%", top: "10%", width: "38%", height: "32%", background: "radial-gradient(ellipse, rgba(255,255,255,0.62) 0%, transparent 70%)", transform: "rotate(-22deg)", borderRadius: "50%", filter: "blur(1.5px)" }} />
+                <div className="pointer-events-none absolute" style={{ right: "15%", bottom: "14%", width: "16%", height: "10%", background: "rgba(255,255,255,0.22)", borderRadius: "50%", filter: "blur(2px)" }} />
               </button>
 
+              {/* Base */}
               <div
-                className="relative z-10 -mt-2 mx-auto w-[68%] rounded-xl px-1.5 py-1.5"
+                className="relative z-10 mx-auto"
                 style={{
-                  background:
-                    "linear-gradient(180deg, #a16207 0%, #92400e 45%, #78350f 100%)",
-                  boxShadow:
-                    "0 4px 10px rgba(69,26,3,0.28), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 4px rgba(0,0,0,0.18)",
+                  width: "160px",
+                  marginTop: "-16px",
                 }}
               >
+                {/* Base top ridge */}
                 <div
-                  className="rounded-lg px-1.5 py-1.5"
                   style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(255,251,235,0.94) 100%)",
-                    boxShadow:
-                      "inset 0 1px 2px rgba(255,255,255,0.9), inset 0 -1px 2px rgba(120,53,15,0.08)",
+                    height: "14px",
+                    borderRadius: "50% 50% 0 0 / 100% 100% 0 0",
+                    background: "linear-gradient(180deg, #b45309 0%, #92400e 100%)",
+                    boxShadow: "0 -2px 8px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,200,100,0.2)",
+                  }}
+                />
+                {/* Base body with counter */}
+                <div
+                  style={{
+                    background: "linear-gradient(180deg, #92400e 0%, #78350f 60%, #6b2d0a 100%)",
+                    boxShadow: "0 8px 20px rgba(69,26,3,0.35), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,180,60,0.2)",
+                    borderRadius: "0 0 12px 12px",
+                    padding: "6px 10px 10px",
                   }}
                 >
-                  <div className="grid grid-cols-3 gap-0.5">
-                    {REACTIONS.map((reaction) => (
-                      <div
-                        key={reaction.id}
-                        className="flex flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5"
-                      >
-                        <ReactionUiIcon type={reaction.id} size={16} />
-                        <span className="font-display text-[10px] font-bold leading-none tabular-nums text-aira-navy">
-                          {formatCount(counts[reaction.id])}
-                        </span>
-                      </div>
+                  {/* Horizontal wood grain lines */}
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-b-xl opacity-20" style={{ borderRadius: "0 0 12px 12px" }}>
+                    {[28, 42, 58, 74].map((top) => (
+                      <div key={top} className="absolute left-0 right-0 h-px bg-amber-950" style={{ top: `${top}%` }} />
                     ))}
                   </div>
+
+                  {/* Counter panel */}
+                  <div
+                    className="relative rounded-lg px-2 py-2"
+                    style={{
+                      background: "linear-gradient(180deg, rgba(255,251,235,0.97) 0%, rgba(255,247,220,0.93) 100%)",
+                      boxShadow: "inset 0 1px 3px rgba(255,255,255,0.9), inset 0 -1px 2px rgba(120,53,15,0.12), 0 1px 0 rgba(255,180,60,0.15)",
+                    }}
+                  >
+                    <div className="grid grid-cols-3 gap-1">
+                      {REACTIONS.map((reaction) => (
+                        <div key={reaction.id} className="flex flex-col items-center gap-0.5">
+                          <ReactionUiIcon
+                            type={reaction.id}
+                            size={14}
+                            className={reaction.particleClass}
+                          />
+                          <span className="font-display text-[11px] font-bold leading-none tabular-nums text-aira-navy">
+                            {formatCount(counts[reaction.id])}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+                {/* Base bottom shadow ellipse */}
+                <div
+                  className="mx-auto"
+                  style={{
+                    height: "8px",
+                    width: "80%",
+                    background: "rgba(69,26,3,0.22)",
+                    borderRadius: "50%",
+                    filter: "blur(4px)",
+                    marginTop: "2px",
+                  }}
+                />
               </div>
             </div>
           </div>
 
-          <div className="flex flex-row gap-3 sm:flex-col sm:gap-3.5">
+          {/* Reaction buttons */}
+          <div className="flex flex-row gap-3.5 sm:flex-col sm:gap-4">
             {REACTIONS.map((reaction) => (
               <ReactionButton
                 key={reaction.id}
