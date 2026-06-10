@@ -1,3 +1,4 @@
+import SnowGlobeSection from "@/components/SnowGlobeSection";
 import BankTransferSection from "@/components/BankTransferSection";
 import BestWishesSection from "@/components/BestWishesSection";
 import LocationSection from "@/components/LocationSection";
@@ -79,6 +80,17 @@ export default async function Home() {
         >
           <div className="mx-auto w-full max-w-xl">
             <BestWishesSection />
+          </div>
+        </SectionShell>
+
+        <SectionShell
+          className="mb-5 sm:mb-6"
+          background={
+            <SectionBackground src="/bg_3.jpg" gradient="soft" objectPosition="object-[center_70%]" />
+          }
+        >
+          <div className="mx-auto w-full max-w-xl">
+            <SnowGlobeSection />
           </div>
         </SectionShell>
 

@@ -16,8 +16,8 @@ const IDLE_VISIBLE_MS = 2500;
 
 const BUBBLE_RADIUS = 14;
 const TAIL_LENGTH = 11;
-const TAIL_ATTACH_LEFT = 12;
-const TAIL_ATTACH_RIGHT = 24;
+const TAIL_ATTACH_LEFT = 10;
+const TAIL_ATTACH_RIGHT = 22;
 
 function createSpeechBubblePath(width, height, tailTipX) {
   const w = width;
@@ -33,8 +33,8 @@ function createSpeechBubblePath(width, height, tailTipX) {
     `L ${w - 1} ${h - r}`,
     `Q ${w - 1} ${h - 1} ${w - r} ${h - 1}`,
     `L ${TAIL_ATTACH_RIGHT} ${h - 1}`,
-    `C ${TAIL_ATTACH_RIGHT + 16} ${h + 1} ${tipX + 12} ${h + 6} ${tipX} ${tipY}`,
-    `C ${tipX - 2} ${h + 7} ${TAIL_ATTACH_LEFT - 2} ${h + 1} ${TAIL_ATTACH_LEFT} ${h - 1}`,
+    `L ${tipX} ${tipY}`,
+    `L ${TAIL_ATTACH_LEFT} ${h - 1}`,
     `L ${r} ${h - 1}`,
     `Q 1 ${h - 1} 1 ${h - r}`,
     `L 1 ${r}`,
