@@ -45,13 +45,10 @@ const REACTIONS = [
   },
 ];
 
-const HOLD_INTERVAL_MS = 280;
-const MAX_PARTICLES = 52;
-const FADE_START = 38;
-const POLL_MS = 2000;
+const HOLD_INTERVAL_MS = 320;
+const POLL_MS = 4000;
 const GRAVITY = 0.006;
 const DRAG = 0.992;
-const MAX_PREPOPULATE = 30;
 const LAYER_HEIGHT = 2.6;
 
 /** Glass dome area within snow-globe.png (percent of image box) */
@@ -73,11 +70,6 @@ function formatCount(value) {
   return String(n);
 }
 
-function slotsInLayer(layer) {
-  if (layer === 0) return 5;
-  return Math.min(7 + layer * 2, 13);
-}
-
 function floorYAt(x) {
   const dx = x - GLOBE_CENTER.x;
   const rimY =
@@ -95,34 +87,110 @@ function clampXInGlobeAtY(x, y) {
   return { x: GLOBE_CENTER.x + clampedDx, y };
 }
 
-function slotXOffset(slot, slots, layer) {
-  const spread = 5 + layer * 2.2;
-  if (slots === 1) return 0;
-  if (slots === 5) {
-    return [-spread, -spread / 2, 0, spread / 2, spread][slot] ?? 0;
-  }
-  const t = slot / (slots - 1) - 0.5;
-  return t * spread * 2;
+function minSeparation(size = 9) {
+  return 3.4 + size * 0.14;
 }
 
-function assignRestPosition(settledParticles, excludeId) {
-  const n = settledParticles.filter(
-    (p) => p.settled && !p.fading && p.id !== excludeId,
-  ).length;
+function settledParticles(list, excludeId) {
+  return list.filter((p) => p.settled && !p.fading && p.id !== excludeId);
+}
 
-  let layer = 0;
-  let used = 0;
-  while (used + slotsInLayer(layer) <= n) {
-    used += slotsInLayer(layer);
-    layer += 1;
+function overlapsAny(x, y, size, others, excludeId) {
+  for (const p of settledParticles(others, excludeId)) {
+    const minDist = (minSeparation(size) + minSeparation(p.size)) / 2;
+    if (Math.hypot(p.x - x, p.y - y) < minDist) return true;
   }
-  const slot = n - used;
-  const slots = slotsInLayer(layer);
-  const restX = 50 + slotXOffset(slot, slots, layer);
-  const floor = floorYAt(restX);
-  const restY = floor - layer * LAYER_HEIGHT;
+  return false;
+}
 
-  return clampXInGlobeAtY(restX, restY);
+function maxXSpreadAtY(y) {
+  const dy = y - GLOBE_CENTER.y;
+  const maxDx = Math.sqrt(Math.max(0, GLOBE_RADIUS * GLOBE_RADIUS - dy * dy));
+  return Math.max(0, maxDx - 2.5);
+}
+
+function findRestPosition(settledList, excludeId, size = 9) {
+  const floorCenterY = floorYAt(GLOBE_CENTER.x);
+  const step = minSeparation(size) * 0.92;
+
+  for (let layer = 0; layer < 24; layer += 1) {
+    const y = floorCenterY - layer * LAYER_HEIGHT;
+    if (y < 14) break;
+
+    const spread = maxXSpreadAtY(y);
+    const cols = Math.max(1, Math.floor((spread * 2) / step));
+
+    const order = [];
+    for (let col = 0; col < cols; col += 1) order.push(col);
+    order.sort(
+      (a, b) =>
+        Math.abs(a - (cols - 1) / 2) - Math.abs(b - (cols - 1) / 2),
+    );
+
+    for (const col of order) {
+      const t = cols === 1 ? 0.5 : col / (cols - 1);
+      const x = GLOBE_CENTER.x + (t - 0.5) * spread * 1.85;
+      const pos = clampXInGlobeAtY(x, y);
+      if (!overlapsAny(pos.x, pos.y, size, settledList, excludeId)) {
+        return pos;
+      }
+    }
+  }
+
+  return clampXInGlobeAtY(
+    GLOBE_CENTER.x + (Math.random() - 0.5) * 8,
+    floorCenterY - Math.random() * 6,
+  );
+}
+
+function separateSettledParticles(list) {
+  const next = list.map((p) => ({ ...p }));
+  let moved = false;
+
+  for (let iter = 0; iter < 4; iter += 1) {
+    for (let i = 0; i < next.length; i += 1) {
+      const p = next[i];
+      if (!p.settled || p.fading) continue;
+
+      let { x, y } = p;
+      for (let j = 0; j < next.length; j += 1) {
+        if (i === j) continue;
+        const o = next[j];
+        if (!o.settled || o.fading) continue;
+
+        const dx = x - o.x;
+        const dy = y - o.y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const minDist = (minSeparation(p.size) + minSeparation(o.size)) / 2;
+        if (dist < minDist) {
+          const push = ((minDist - dist) / dist) * 0.52;
+          x += dx * push;
+          y += dy * push;
+          moved = true;
+        }
+      }
+
+      const floor = floorYAt(x);
+      if (y > floor) y = floor;
+      const clamped = clampXInGlobeAtY(x, y);
+      next[i] = { ...p, x: clamped.x, y: clamped.y, restX: clamped.x, restY: clamped.y };
+    }
+  }
+
+  return { list: next, moved };
+}
+
+function hasSettledOverlap(list) {
+  for (let i = 0; i < list.length; i += 1) {
+    for (let j = i + 1; j < list.length; j += 1) {
+      const a = list[i];
+      const b = list[j];
+      if (!a.settled || !b.settled || a.fading || b.fading) continue;
+      const minDist = (minSeparation(a.size) + minSeparation(b.size)) / 2;
+      if (Math.hypot(a.x - b.x, a.y - b.y) < minDist * 0.92) return true;
+    }
+  }
+  return false;
 }
 
 function spawnFromTop(xHint) {
@@ -164,41 +232,18 @@ function createParticle(type, xHint, id, velocity) {
   };
 }
 
-function prePopulate(counts, idRef) {
-  const total =
-    (counts.love ?? 0) + (counts.like ?? 0) + (counts.snowflake ?? 0);
-  if (total === 0) return [];
-
-  const scale = Math.min(1, MAX_PREPOPULATE / total);
-  const result = [];
-
-  for (const { id } of REACTIONS) {
-    const n = Math.round((counts[id] ?? 0) * scale);
-    for (let i = 0; i < n; i += 1) {
-      const pid = `pre-${++idRef.current}`;
-      const rest = assignRestPosition(
-        result.filter((p) => p.settled),
-        pid,
-      );
-      result.push({
-        id: pid,
-        type: id,
-        x: rest.x,
-        y: rest.y,
-        vx: 0,
-        vy: 0,
-        opacity: 0.75 + Math.random() * 0.2,
-        fading: false,
-        settled: true,
-        size: 7 + Math.random() * 4,
-        rotate: Math.random() * 360,
-        restX: rest.x,
-        restY: rest.y,
-      });
-    }
-  }
-
-  return result;
+function needsPhysics(list) {
+  return (
+    list.some(
+      (p) =>
+        p.fading ||
+        !p.settled ||
+        Math.abs(p.vx) > 0.002 ||
+        Math.abs(p.vy) > 0.002 ||
+        Math.abs(p.restX - p.x) > 0.05 ||
+        Math.abs(p.restY - p.y) > 0.05,
+    ) || hasSettledOverlap(list)
+  );
 }
 
 function ParticleIcon({ type, size }) {
@@ -304,6 +349,7 @@ export default function SnowGlobeSection() {
   const seenEventIdsRef = useRef(new Set());
   const lastPollRef = useRef(Date.now());
   const rafRef = useRef(null);
+  const physicsActiveRef = useRef(false);
   const localIdRef = useRef(0);
   const glassRef = useRef(null);
   const particleLayerRef = useRef(null);
@@ -322,117 +368,19 @@ export default function SnowGlobeSection() {
     }
   }, []);
 
-  const applyCounts = useCallback((nextCounts, source) => {
-    if (!nextCounts) return;
-    setCounts((prev) => {
-      const next = {
-        love: Number(nextCounts.love) || 0,
-        like: Number(nextCounts.like) || 0,
-        snowflake: Number(nextCounts.snowflake) || 0,
-      };
-      if (source === "airtable") return next;
-      return {
-        love: Math.max(prev.love, next.love),
-        like: Math.max(prev.like, next.like),
-        snowflake: Math.max(prev.snowflake, next.snowflake),
-      };
-    });
-  }, []);
+  const startPhysics = useCallback(() => {
+    if (physicsActiveRef.current) return;
+    physicsActiveRef.current = true;
 
-  const spawnParticle = useCallback((type, x, y, eventId) => {
-    const key = eventId ?? `local-${++localIdRef.current}`;
-    if (eventId && seenEventIdsRef.current.has(eventId)) return;
-    if (eventId) seenEventIdsRef.current.add(eventId);
-
-    const next = [...particlesRef.current];
-    if (next.length >= MAX_PARTICLES) {
-      const n = Math.max(1, next.length - FADE_START + 1);
-      for (let i = 0; i < n && i < next.length; i += 1) next[i].fading = true;
-    }
-    next.push(createParticle(type, x, key));
-    particlesRef.current = next;
-    setParticles([...next]);
-  }, []); // setParticles only when count changes — positions updated in RAF
-
-  const addFloatingIcon = useCallback((type, buttonEl) => {
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    const buttonRect = buttonEl?.getBoundingClientRect();
-    if (!containerRect || !buttonRect) return;
-
-    const id = `float-${Date.now()}-${Math.random()}`;
-    const icon = {
-      id,
-      type,
-      x: buttonRect.left - containerRect.left + buttonRect.width / 2,
-      y: buttonRect.top - containerRect.top + buttonRect.height / 2,
-    };
-    setFloatingIcons((prev) => [...prev, icon]);
-    window.setTimeout(() => {
-      setFloatingIcons((prev) => prev.filter((item) => item.id !== id));
-    }, 2500);
-  }, []);
-
-  const syncFromServer = useCallback(
-    async (sinceMs, { includeEvents = true } = {}) => {
-      try {
-        const q = sinceMs > 0 ? `?since=${sinceMs}` : "";
-        const res = await fetch(`/api/reactions${q}`, { cache: "no-store" });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return;
-        applyCounts(data.counts, data.source);
-        if (includeEvents) {
-          for (const ev of data.events ?? []) {
-            spawnParticle(ev.type, ev.x, ev.y, ev.id);
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    },
-    [applyCounts, spawnParticle],
-  );
-
-  useEffect(() => {
-    lastPollRef.current = Date.now();
-
-    async function loadInitial() {
-      try {
-        const res = await fetch("/api/reactions", { cache: "no-store" });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return;
-
-        const initialCounts = data.counts ?? {
-          love: 0,
-          like: 0,
-          snowflake: 0,
-        };
-        applyCounts(initialCounts, data.source);
-
-        const pre = prePopulate(initialCounts, localIdRef);
-        if (pre.length > 0) {
-          particlesRef.current = pre;
-          setParticles([...pre]);
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-
-    loadInitial();
-
-    const poll = setInterval(() => {
-      const since = lastPollRef.current;
-      lastPollRef.current = Date.now();
-      syncFromServer(since, { includeEvents: true });
-    }, POLL_MS);
-
-    return () => clearInterval(poll);
-  }, [applyCounts, syncFromServer]);
-
-  useEffect(() => {
     let lastTime = 0;
 
     function tick(now) {
+      if (document.hidden) {
+        physicsActiveRef.current = false;
+        rafRef.current = null;
+        return;
+      }
+
       const dt = lastTime ? Math.min((now - lastTime) / 16.67, 2) : 1;
       lastTime = now;
 
@@ -480,10 +428,7 @@ export default function SnowGlobeSection() {
                 settled = true;
                 vx = 0;
                 vy = 0;
-                const rest = assignRestPosition(
-                  next.filter((pp) => pp.settled),
-                  p.id,
-                );
+                const rest = findRestPosition(next, p.id, p.size);
                 restX = rest.x;
                 restY = rest.y;
                 x = rest.x;
@@ -523,21 +468,124 @@ export default function SnowGlobeSection() {
 
       if (next.length !== prev.length) countChanged = true;
 
-      particlesRef.current = next;
-      syncParticleDom(next);
+      const separated = separateSettledParticles(next);
+      const finalList = separated.list;
+
+      particlesRef.current = finalList;
+      syncParticleDom(finalList);
 
       if (countChanged) {
-        setParticles([...next]);
+        setParticles([...finalList]);
+      }
+
+      if (!needsPhysics(finalList)) {
+        physicsActiveRef.current = false;
+        rafRef.current = null;
+        return;
       }
 
       rafRef.current = requestAnimationFrame(tick);
     }
 
     rafRef.current = requestAnimationFrame(tick);
+  }, [syncParticleDom]);
+
+  const applyCounts = useCallback((nextCounts, source) => {
+    if (!nextCounts) return;
+    setCounts((prev) => {
+      const next = {
+        love: Number(nextCounts.love) || 0,
+        like: Number(nextCounts.like) || 0,
+        snowflake: Number(nextCounts.snowflake) || 0,
+      };
+      if (source === "airtable") return next;
+      return {
+        love: Math.max(prev.love, next.love),
+        like: Math.max(prev.like, next.like),
+        snowflake: Math.max(prev.snowflake, next.snowflake),
+      };
+    });
+  }, []);
+
+  const spawnParticle = useCallback((type, x, y, eventId) => {
+    const key = eventId ?? `local-${++localIdRef.current}`;
+    if (eventId && seenEventIdsRef.current.has(eventId)) return;
+    if (eventId) seenEventIdsRef.current.add(eventId);
+
+    const next = [...particlesRef.current];
+    next.push(createParticle(type, x, key));
+    particlesRef.current = next;
+    setParticles([...next]);
+    startPhysics();
+  }, [startPhysics]);
+
+  const addFloatingIcon = useCallback((type, buttonEl) => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const buttonRect = buttonEl?.getBoundingClientRect();
+    if (!containerRect || !buttonRect) return;
+
+    const id = `float-${Date.now()}-${Math.random()}`;
+    const icon = {
+      id,
+      type,
+      x: buttonRect.left - containerRect.left + buttonRect.width / 2,
+      y: buttonRect.top - containerRect.top + buttonRect.height / 2,
+    };
+    setFloatingIcons((prev) => [...prev, icon]);
+    window.setTimeout(() => {
+      setFloatingIcons((prev) => prev.filter((item) => item.id !== id));
+    }, 2500);
+  }, []);
+
+  const syncFromServer = useCallback(
+    async (sinceMs, { includeEvents = true } = {}) => {
+      try {
+        const q = sinceMs > 0 ? `?since=${sinceMs}` : "";
+        const res = await fetch(`/api/reactions${q}`, { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        applyCounts(data.counts, data.source);
+        if (includeEvents) {
+          for (const ev of data.events ?? []) {
+            spawnParticle(ev.type, ev.x, ev.y, ev.id);
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    },
+    [applyCounts, spawnParticle],
+  );
+
+  useEffect(() => {
+    lastPollRef.current = Date.now();
+
+    async function loadInitial() {
+      try {
+        const res = await fetch("/api/reactions?events=0", {
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        applyCounts(data.counts, data.source);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    loadInitial();
+
+    const poll = setInterval(() => {
+      const since = lastPollRef.current;
+      lastPollRef.current = Date.now();
+      syncFromServer(since, { includeEvents: true });
+    }, POLL_MS);
+
     return () => {
+      clearInterval(poll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [syncParticleDom]);
+  }, [applyCounts, syncFromServer]);
 
   const scatterParticles = useCallback(
     (ox, oy) => {
@@ -566,8 +614,9 @@ export default function SnowGlobeSection() {
       });
       particlesRef.current = next;
       syncParticleDom(next);
+      startPhysics();
     },
-    [syncParticleDom],
+    [startPhysics, syncParticleDom],
   );
 
   useEffect(() => {
@@ -674,24 +723,15 @@ export default function SnowGlobeSection() {
                       aspectRatio: "1",
                     }}
                   >
-                    {[...Array(8)].map((_, i) => (
-                      <motion.div
-                        key={`snow-${i}`}
-                        className="absolute h-0.5 w-0.5 rounded-full bg-white opacity-40"
+                    {[18, 38, 58, 74].map((left, i) => (
+                      <span
+                        key={`snow-${left}`}
+                        className="aira-globe-snow absolute h-0.5 w-0.5 rounded-full bg-white"
                         style={{
-                          left: `${10 + ((i * 19) % 80)}%`,
-                          top: "0%",
-                        }}
-                        animate={{
-                          y: ["0%", "100%"],
-                          x: [0, Math.sin(i) * 8],
-                          opacity: [0.5, 0.2, 0.5],
-                        }}
-                        transition={{
-                          duration: 6 + i * 0.5,
-                          repeat: Infinity,
-                          ease: "linear",
-                          delay: i * 0.4,
+                          left: `${left}%`,
+                          top: "4%",
+                          animationDuration: `${5.5 + i}s`,
+                          animationDelay: `${i * 0.8}s`,
                         }}
                       />
                     ))}

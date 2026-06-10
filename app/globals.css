@@ -45,6 +45,22 @@ body {
   pointer-events: none;
 }
 
+@keyframes aira-globe-snow-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(110px);
+    opacity: 0.15;
+  }
+}
+
+.aira-globe-snow {
+  animation: aira-globe-snow-fall linear infinite;
+  pointer-events: none;
+}
+
 /* Klik kartu: partikel cahaya + salju (ringan, transform + opacity saja) */
 @keyframes aira-spark {
   0% {

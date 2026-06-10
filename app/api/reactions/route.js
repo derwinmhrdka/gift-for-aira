@@ -7,9 +7,12 @@ export async function GET(request) {
   const sinceParam = request.nextUrl.searchParams.get("since");
   const sinceMs = sinceParam ? Number(sinceParam) : 0;
 
+  const includeEvents = request.nextUrl.searchParams.get("events") !== "0";
+
   try {
     const data = await getReactionsSince(
       Number.isFinite(sinceMs) && sinceMs > 0 ? sinceMs : 0,
+      { includeEvents },
     );
     return NextResponse.json(data);
   } catch (e) {
