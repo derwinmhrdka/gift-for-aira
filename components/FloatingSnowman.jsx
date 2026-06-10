@@ -1,7 +1,7 @@
 "use client";
 
 import AdminAccessModal from "@/components/AdminAccessModal";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const IDLE_MESSAGES = [
   "Selamat datang ongkel onty ❄️",
@@ -14,95 +14,18 @@ const IDLE_MESSAGES = [
 const IDLE_WAIT_MS = 5000;
 const IDLE_VISIBLE_MS = 2500;
 
-const BUBBLE_RADIUS = 14;
-const TAIL_LENGTH = 11;
-const TAIL_ATTACH_LEFT = 10;
-const TAIL_ATTACH_RIGHT = 22;
-
-function createSpeechBubblePath(width, height, tailTipX) {
-  const w = width;
-  const h = height;
-  const r = BUBBLE_RADIUS;
-  const tipX = tailTipX;
-  const tipY = h + TAIL_LENGTH;
-
-  return [
-    `M ${r} 1`,
-    `L ${w - r} 1`,
-    `Q ${w - 1} 1 ${w - 1} ${r}`,
-    `L ${w - 1} ${h - r}`,
-    `Q ${w - 1} ${h - 1} ${w - r} ${h - 1}`,
-    `L ${TAIL_ATTACH_RIGHT} ${h - 1}`,
-    `L ${tipX} ${tipY}`,
-    `L ${TAIL_ATTACH_LEFT} ${h - 1}`,
-    `L ${r} ${h - 1}`,
-    `Q 1 ${h - 1} 1 ${h - r}`,
-    `L 1 ${r}`,
-    `Q 1 1 ${r} 1`,
-    "Z",
-  ].join(" ");
-}
-
 function SpeechBubble({
   children,
   interactive = false,
   onAction,
   className = "",
-  tailCenterX,
 }) {
-  const contentRef = useRef(null);
-  const [dims, setDims] = useState({ w: 0, h: 0 });
-
-  useLayoutEffect(() => {
-    const node = contentRef.current;
-    if (!node) return undefined;
-
-    function measure() {
-      const rect = node.getBoundingClientRect();
-      setDims({
-        w: Math.ceil(rect.width),
-        h: Math.ceil(rect.height),
-      });
-    }
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [children]);
-
-  const path =
-    dims.w > 0 && dims.h > 0
-      ? createSpeechBubblePath(dims.w, dims.h, tailCenterX)
-      : "";
-
   return (
     <div
       className={`absolute bottom-[calc(100%-10px)] left-0 z-[222] w-max max-w-[min(14rem,calc(100vw-2rem))] ${className}`}
     >
-      <div
-        className="relative"
-        style={{ paddingBottom: TAIL_LENGTH }}
-      >
-        {path ? (
-          <svg
-            aria-hidden
-            className="pointer-events-none absolute left-0 top-0 overflow-visible drop-shadow-[0_6px_20px_rgba(100,116,139,0.12)]"
-            width={dims.w}
-            height={dims.h + TAIL_LENGTH}
-          >
-            <path
-              d={path}
-              fill="rgba(255,255,255,0.95)"
-              stroke="rgba(203,213,225,0.7)"
-              strokeWidth="1"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          </svg>
-        ) : null}
-
-        <div ref={contentRef} className="relative px-3.5 py-2.5">
+      <div className="relative pb-2 drop-shadow-[0_6px_20px_rgba(100,116,139,0.12)]">
+        <div className="rounded-2xl border border-slate-200/70 bg-white/95 px-3.5 py-2.5">
           {interactive ? (
             <button
               type="button"
@@ -117,6 +40,17 @@ function SpeechBubble({
             </p>
           )}
         </div>
+
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute left-[2.4rem] sm:left-[2.65rem]"
+          style={{ top: "calc(100% - 2px)" }}
+          width="14"
+          height="9"
+          viewBox="0 0 14 9"
+        >
+          <path d="M0 0 H14 L7 9 Z" fill="rgba(255,255,255,0.95)" />
+        </svg>
       </div>
     </div>
   );
@@ -128,25 +62,8 @@ export default function FloatingSnowman() {
   const [modalOpen, setModalOpen] = useState(false);
   const [idleBubbleVisible, setIdleBubbleVisible] = useState(false);
   const [idleMessage, setIdleMessage] = useState(IDLE_MESSAGES[0]);
-  const [tailCenterX, setTailCenterX] = useState(36);
 
   const isInteractive = bubbleOpen || modalOpen;
-
-  useLayoutEffect(() => {
-    const node = snowmanRef.current;
-    if (!node) return undefined;
-
-    function measureSnowman() {
-      const img = node.querySelector("img");
-      if (!img) return;
-      setTailCenterX(Math.round(img.getBoundingClientRect().width / 2));
-    }
-
-    measureSnowman();
-    const observer = new ResizeObserver(measureSnowman);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (isInteractive) {
@@ -214,17 +131,13 @@ export default function FloatingSnowman() {
 
       <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-[220]">
         {bubbleOpen ? (
-          <SpeechBubble
-            interactive
-            onAction={openAdminModal}
-            tailCenterX={tailCenterX}
-          >
+          <SpeechBubble interactive onAction={openAdminModal}>
             Masuk ke mode admin?
           </SpeechBubble>
         ) : null}
 
         {!bubbleOpen && !modalOpen && idleBubbleVisible ? (
-          <SpeechBubble className="pointer-events-none" tailCenterX={tailCenterX}>
+          <SpeechBubble className="pointer-events-none">
             {idleMessage}
           </SpeechBubble>
         ) : null}
