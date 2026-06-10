@@ -84,12 +84,12 @@ export default async function Home() {
         </SectionShell>
 
         <SectionShell
-          className="mb-5 sm:mb-6"
+          className="mb-5 !overflow-visible sm:mb-6"
           background={
             <SectionBackground src="/bg_3.jpg" gradient="soft" objectPosition="object-[center_70%]" />
           }
         >
-          <div className="mx-auto w-full max-w-xl">
+          <div className="mx-auto w-full max-w-xl overflow-visible">
             <SnowGlobeSection />
           </div>
         </SectionShell>

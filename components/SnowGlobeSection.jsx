@@ -235,6 +235,7 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
   const filled = reaction.id !== "snowflake";
   const buttonRef = useRef(null);
   const holdTimerRef = useRef(null);
+  const [bursts, setBursts] = useState([]);
 
   const stopHold = useCallback(() => {
     if (holdTimerRef.current) {
@@ -243,10 +244,18 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
     }
   }, []);
 
-  const fire = useCallback(
-    () => onReact(reaction.id, buttonRef.current),
-    [onReact, reaction.id],
-  );
+  const addBurst = useCallback(() => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setBursts((prev) => [...prev, { id, angle: Math.random() * 360 }]);
+    window.setTimeout(() => {
+      setBursts((prev) => prev.filter((b) => b.id !== id));
+    }, 600);
+  }, []);
+
+  const fire = useCallback(() => {
+    addBurst();
+    onReact(reaction.id, buttonRef.current);
+  }, [addBurst, onReact, reaction.id]);
 
   const startHold = useCallback(
     (e) => {
@@ -273,7 +282,7 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
       className="group flex touch-none select-none flex-col items-center gap-1.5 focus:outline-none"
     >
       <motion.div
-        className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br shadow-md transition-all duration-300 group-hover:shadow-lg sm:h-14 sm:w-14 ${reaction.btnFrom} ${reaction.btnTo} ${reaction.btnHoverFrom} ${reaction.btnHoverTo}`}
+        className={`relative flex h-12 w-12 cursor-pointer items-center justify-center overflow-visible rounded-full bg-gradient-to-br shadow-md transition-all duration-300 group-hover:shadow-lg sm:h-14 sm:w-14 ${reaction.btnFrom} ${reaction.btnTo} ${reaction.btnHoverFrom} ${reaction.btnHoverTo}`}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}
         animate={
@@ -285,6 +294,19 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
         }
         transition={{ duration: 0.5, ease: "easeInOut" }}
       >
+        {bursts.map((burst) => (
+          <span
+            key={burst.id}
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2"
+            style={{ transform: `rotate(${burst.angle}deg)` }}
+          >
+            <span
+              className={`aira-reaction-burst block h-2 w-2 rounded-full ${reaction.colorClass}`}
+              style={{ backgroundColor: "currentColor" }}
+            />
+          </span>
+        ))}
         <motion.div
           animate={isBouncing ? { scale: [1, 1.3, 0.85, 1.15, 1] } : {}}
           transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -495,21 +517,34 @@ export default function SnowGlobeSection() {
   }, [startPhysics]);
 
   const addFloatingIcon = useCallback((type, buttonEl) => {
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    const buttonRect = buttonEl?.getBoundingClientRect();
-    if (!containerRect || !buttonRect) return;
+    const container = containerRef.current;
+    const globe = glassRef.current;
+    if (!container || !buttonEl || !globe) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const buttonRect = buttonEl.getBoundingClientRect();
+    const globeRect = globe.getBoundingClientRect();
 
     const id = `float-${Date.now()}-${Math.random()}`;
     const icon = {
       id,
       type,
-      x: buttonRect.left - containerRect.left + buttonRect.width / 2,
-      y: buttonRect.top - containerRect.top + buttonRect.height / 2,
+      startX: buttonRect.left - containerRect.left + buttonRect.width / 2,
+      startY: buttonRect.top - containerRect.top + buttonRect.height / 2,
+      endX:
+        globeRect.left -
+        containerRect.left +
+        globeRect.width * (0.32 + Math.random() * 0.36),
+      endY:
+        globeRect.top -
+        containerRect.top +
+        globeRect.height * (0.22 + Math.random() * 0.28),
+      rotate: (Math.random() - 0.5) * 48,
     };
     setFloatingIcons((prev) => [...prev, icon]);
     window.setTimeout(() => {
       setFloatingIcons((prev) => prev.filter((item) => item.id !== id));
-    }, 2500);
+    }, 1100);
   }, []);
 
   const syncFromServer = useCallback(
@@ -645,7 +680,7 @@ export default function SnowGlobeSection() {
 
   return (
     <section className="w-full" aria-labelledby="snow-globe-heading">
-      <FeatureCard className="!px-4 !py-5 text-left sm:!px-6 sm:!py-7">
+      <FeatureCard className="overflow-visible !px-4 !py-5 text-left sm:!px-6 sm:!py-7">
         <h2
           id="snow-globe-heading"
           className="font-display text-center text-xl font-bold text-aira-navy sm:text-2xl"
@@ -658,7 +693,7 @@ export default function SnowGlobeSection() {
 
         <div
           ref={containerRef}
-          className="relative mt-7 flex flex-row items-center justify-center gap-5 sm:gap-7"
+          className="relative isolate mt-7 flex flex-row items-center justify-center gap-5 overflow-visible sm:gap-7"
         >
           <div
             className={`relative w-[min(100%,14rem)] shrink-0 sm:w-60 ${isShaking ? "aira-globe-shake" : ""}`}
@@ -769,17 +804,24 @@ export default function SnowGlobeSection() {
             {floatingIcons.map((icon) => (
               <motion.div
                 key={icon.id}
-                initial={{ x: icon.x, y: icon.y, opacity: 1, scale: 1 }}
+                className={`pointer-events-none absolute z-20 ${REACTIONS.find((r) => r.id === icon.type)?.colorClass ?? ""}`}
+                style={{ width: 22, height: 22, marginLeft: -11, marginTop: -11 }}
+                initial={{
+                  left: icon.startX,
+                  top: icon.startY,
+                  opacity: 1,
+                  scale: 1,
+                  rotate: 0,
+                }}
                 animate={{
-                  x: icon.x + (Math.random() - 0.5) * 60,
-                  y: icon.y - 160,
+                  left: icon.endX,
+                  top: icon.endY,
                   opacity: 0,
-                  scale: 0.45,
-                  rotate: Math.random() * 180,
+                  scale: 0.38,
+                  rotate: icon.rotate,
                 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 2.2, ease: "easeOut" }}
-                className={`pointer-events-none absolute ${REACTIONS.find((r) => r.id === icon.type)?.colorClass ?? ""}`}
+                transition={{ duration: 0.9, ease: "easeIn" }}
               >
                 <ParticleIcon type={icon.type} size={22} />
               </motion.div>
