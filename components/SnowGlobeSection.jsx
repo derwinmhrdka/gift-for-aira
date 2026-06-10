@@ -251,7 +251,6 @@ function ReactionButton({ reaction, onReact }) {
 export default function SnowGlobeSection() {
   const [counts, setCounts] = useState({ love: 0, like: 0, snowflake: 0 });
   const [particles, setParticles] = useState([]);
-  const [loaded, setLoaded] = useState(false);
 
   const particlesRef = useRef([]);
   const seenEventIdsRef = useRef(new Set());
@@ -328,10 +327,8 @@ export default function SnowGlobeSection() {
           particlesRef.current = pre;
           setParticles([...pre]);
         }
-        setLoaded(true);
-      } catch {
-        setLoaded(true);
-      }
+
+      } catch { /* ignore */ }
     }
 
     loadInitial();
@@ -475,185 +472,85 @@ export default function SnowGlobeSection() {
           Kirim dukunganmu!
         </h2>
         <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
-          Klik ikon — hati, like, atau salju melayang di bola kacanya 🧸
+          Klik ikon — hati, like, atau salju melayang di bola kacanya
         </p>
 
-        <div className="mt-7 flex flex-col items-center gap-6 sm:flex-row sm:items-end sm:justify-center sm:gap-8">
-          <div className="flex flex-col items-center">
-            <div className="relative" style={{ width: "220px" }}>
-              {/* Globe dome */}
-              <button
-                ref={globeRef}
-                type="button"
-                onClick={handleGlobeClick}
-                aria-label="Goyangkan bola kaca"
-                className={`relative mx-auto block cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 ${isShaking ? "aira-globe-shake" : ""}`}
-                style={{
-                  width: "200px",
-                  height: "200px",
-                  background:
-                    "radial-gradient(circle at 34% 26%, rgba(255,255,255,0.96) 0%, rgba(219,239,254,0.78) 22%, rgba(186,230,253,0.52) 42%, rgba(125,211,252,0.3) 62%, rgba(56,189,248,0.15) 80%, rgba(7,89,133,0.1) 100%)",
-                  boxShadow:
-                    "0 12px 40px rgba(14,116,144,0.2), 0 4px 12px rgba(15,23,42,0.1), inset 0 12px 28px rgba(255,255,255,0.9), inset 0 -16px 32px rgba(56,189,248,0.18), inset 0 0 0 1.5px rgba(255,255,255,0.6)",
-                }}
-              >
-                <div className="absolute inset-0 overflow-hidden rounded-full">
-                  {/* Sky gradient */}
-                  <div className="absolute inset-0"
-                    style={{
-                      background:
-                        "radial-gradient(ellipse at 50% 30%, rgba(224,242,254,0.55) 0%, transparent 70%)",
-                    }}
-                  />
+        <div className="mt-7 flex flex-row items-center justify-center gap-5 sm:gap-6">
+          <div className={`relative shrink-0 ${isShaking ? "aira-globe-shake" : ""}`}>
+            <button
+              type="button"
+              onClick={handleGlobeClick}
+              aria-label="Goyangkan bola kaca"
+              className="relative block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
+            >
+              <Image
+                src="/globe.png"
+                alt="Bola kaca salju"
+                width={240}
+                height={320}
+                className="h-auto w-[200px] sm:w-[230px]"
+                priority
+              />
 
-                  {/* Snow ground */}
-                  <div
-                    className="pointer-events-none absolute bottom-0 left-0 right-0"
-                    style={{
-                      height: "34%",
-                      background:
-                        "radial-gradient(ellipse at 50% 100%, rgba(240,249,255,0.95) 0%, rgba(224,242,254,0.88) 50%, rgba(186,230,253,0.6) 80%, transparent 100%)",
-                    }}
-                  />
-                  {/* Snow bump */}
-                  <div
-                    className="pointer-events-none absolute left-0 right-0"
-                    style={{
-                      bottom: "29%",
-                      height: "12%",
-                      background:
-                        "radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.9) 0%, rgba(224,242,254,0.7) 60%, transparent 100%)",
-                      filter: "blur(3px)",
-                    }}
-                  />
-
-                  {/* Pine trees */}
-                  <div className="pointer-events-none absolute" style={{ left: "10%", bottom: "28%", width: "14%", height: "22%", background: "linear-gradient(to bottom, #166534, #14532d)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.7 }} />
-                  <div className="pointer-events-none absolute" style={{ left: "8%", bottom: "28%", width: "18%", height: "30%", background: "linear-gradient(to bottom, #15803d, #166534)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.55 }} />
-                  <div className="pointer-events-none absolute" style={{ right: "9%", bottom: "28%", width: "14%", height: "22%", background: "linear-gradient(to bottom, #166534, #14532d)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.65 }} />
-                  <div className="pointer-events-none absolute" style={{ right: "7%", bottom: "28%", width: "18%", height: "28%", background: "linear-gradient(to bottom, #15803d, #166534)", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", opacity: 0.5 }} />
-                  {/* Snow on trees */}
-                  <div className="pointer-events-none absolute" style={{ left: "10%", bottom: "46%", width: "14%", height: "6%", background: "rgba(255,255,255,0.75)", clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)", filter: "blur(0.5px)" }} />
-                  <div className="pointer-events-none absolute" style={{ right: "9%", bottom: "46%", width: "14%", height: "6%", background: "rgba(255,255,255,0.7)", clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)", filter: "blur(0.5px)" }} />
-
-                  {/* Baby */}
-                  <div className="pointer-events-none absolute flex justify-center" style={{ bottom: "28%", left: "22%", right: "22%" }}>
-                    <Image
-                      src="/baby.png"
-                      alt=""
-                      width={120}
-                      height={120}
-                      className="h-auto w-full max-w-[5.5rem] object-contain drop-shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
-                    />
-                  </div>
-
-                  {/* Particles */}
-                  {particles.map((particle) => (
-                    <div
-                      key={particle.id}
-                      className="pointer-events-none absolute will-change-transform"
-                      style={{
-                        left: `${particle.x}%`,
-                        top: `${particle.y}%`,
-                        opacity: particle.opacity,
-                        transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
-                      }}
-                    >
-                      <GlobeParticle type={particle.type} size={particle.size} />
-                    </div>
-                  ))}
-
-                  {/* Bottom inner glow */}
-                  <div className="pointer-events-none absolute inset-0 rounded-full"
-                    style={{ background: "radial-gradient(ellipse at 50% 130%, rgba(255,255,255,0.35) 0%, transparent 55%)" }}
-                  />
-                </div>
-
-                {/* Glass shine overlays — on top of content */}
-                <div className="pointer-events-none absolute inset-0 rounded-full"
-                  style={{ background: "radial-gradient(ellipse at 32% 18%, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.18) 28%, transparent 52%)" }}
-                />
-                <div className="pointer-events-none absolute rounded-full border border-white/40" style={{ inset: "4px" }} />
-                <div className="pointer-events-none absolute rounded-full border border-sky-100/25" style={{ inset: "10px" }} />
-                <div className="pointer-events-none absolute" style={{ left: "14%", top: "10%", width: "38%", height: "32%", background: "radial-gradient(ellipse, rgba(255,255,255,0.62) 0%, transparent 70%)", transform: "rotate(-22deg)", borderRadius: "50%", filter: "blur(1.5px)" }} />
-                <div className="pointer-events-none absolute" style={{ right: "15%", bottom: "14%", width: "16%", height: "10%", background: "rgba(255,255,255,0.22)", borderRadius: "50%", filter: "blur(2px)" }} />
-              </button>
-
-              {/* Base */}
               <div
-                className="relative z-10 mx-auto"
+                ref={globeRef}
+                className="pointer-events-none absolute overflow-hidden rounded-full"
                 style={{
-                  width: "160px",
-                  marginTop: "-16px",
+                  left: "11%",
+                  top: "2.5%",
+                  width: "78%",
+                  aspectRatio: "1",
                 }}
               >
-                {/* Base top ridge */}
-                <div
-                  style={{
-                    height: "14px",
-                    borderRadius: "50% 50% 0 0 / 100% 100% 0 0",
-                    background: "linear-gradient(180deg, #b45309 0%, #92400e 100%)",
-                    boxShadow: "0 -2px 8px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,200,100,0.2)",
-                  }}
-                />
-                {/* Base body with counter */}
-                <div
-                  style={{
-                    background: "linear-gradient(180deg, #92400e 0%, #78350f 60%, #6b2d0a 100%)",
-                    boxShadow: "0 8px 20px rgba(69,26,3,0.35), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,180,60,0.2)",
-                    borderRadius: "0 0 12px 12px",
-                    padding: "6px 10px 10px",
-                  }}
-                >
-                  {/* Horizontal wood grain lines */}
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-b-xl opacity-20" style={{ borderRadius: "0 0 12px 12px" }}>
-                    {[28, 42, 58, 74].map((top) => (
-                      <div key={top} className="absolute left-0 right-0 h-px bg-amber-950" style={{ top: `${top}%` }} />
-                    ))}
-                  </div>
-
-                  {/* Counter panel */}
+                {particles.map((particle) => (
                   <div
-                    className="relative rounded-lg px-2 py-2"
+                    key={particle.id}
+                    className="absolute will-change-transform"
                     style={{
-                      background: "linear-gradient(180deg, rgba(255,251,235,0.97) 0%, rgba(255,247,220,0.93) 100%)",
-                      boxShadow: "inset 0 1px 3px rgba(255,255,255,0.9), inset 0 -1px 2px rgba(120,53,15,0.12), 0 1px 0 rgba(255,180,60,0.15)",
+                      left: `${particle.x}%`,
+                      top: `${particle.y}%`,
+                      opacity: particle.opacity,
+                      transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
                     }}
                   >
-                    <div className="grid grid-cols-3 gap-1">
-                      {REACTIONS.map((reaction) => (
-                        <div key={reaction.id} className="flex flex-col items-center gap-0.5">
-                          <ReactionUiIcon
-                            type={reaction.id}
-                            size={14}
-                            className={reaction.particleClass}
-                          />
-                          <span className="font-display text-[11px] font-bold leading-none tabular-nums text-aira-navy">
-                            {formatCount(counts[reaction.id])}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    <GlobeParticle type={particle.type} size={particle.size} />
                   </div>
+                ))}
+              </div>
+            </button>
+
+            <div
+              className="pointer-events-none absolute left-[16%] right-[16%]"
+              style={{ bottom: "7%" }}
+            >
+              <div
+                className="rounded-md px-2 py-1.5"
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,251,235,0.92) 0%, rgba(255,247,220,0.88) 100%)",
+                  boxShadow:
+                    "inset 0 1px 2px rgba(255,255,255,0.85), inset 0 -1px 2px rgba(69,26,3,0.12)",
+                }}
+              >
+                <div className="grid grid-cols-3 gap-0.5">
+                  {REACTIONS.map((reaction) => (
+                    <div key={reaction.id} className="flex flex-col items-center gap-0.5">
+                      <ReactionUiIcon
+                        type={reaction.id}
+                        size={12}
+                        className={reaction.particleClass}
+                      />
+                      <span className="font-display text-[10px] font-bold leading-none tabular-nums text-aira-navy">
+                        {formatCount(counts[reaction.id])}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                {/* Base bottom shadow ellipse */}
-                <div
-                  className="mx-auto"
-                  style={{
-                    height: "8px",
-                    width: "80%",
-                    background: "rgba(69,26,3,0.22)",
-                    borderRadius: "50%",
-                    filter: "blur(4px)",
-                    marginTop: "2px",
-                  }}
-                />
               </div>
             </div>
           </div>
 
-          {/* Reaction buttons */}
-          <div className="flex flex-row gap-3.5 sm:flex-col sm:gap-4">
+          <div className="flex flex-col items-center gap-3.5 sm:gap-4">
             {REACTIONS.map((reaction) => (
               <ReactionButton
                 key={reaction.id}
