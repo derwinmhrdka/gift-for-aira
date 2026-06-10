@@ -1,6 +1,8 @@
 "use client";
 
 import FeatureCard from "@/components/FeatureCard";
+import { AnimatePresence, motion } from "framer-motion";
+import { Heart, Snowflake, ThumbsUp } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -8,26 +10,38 @@ const REACTIONS = [
   {
     id: "love",
     label: "Love",
-    particleClass: "text-rose-400",
-    btnFrom: "#f43f5e",
-    btnTo: "#e11d48",
-    burstClass: "text-rose-400",
+    icon: Heart,
+    colorClass: "text-pink-500",
+    btnFrom: "from-pink-50",
+    btnTo: "to-pink-100",
+    btnHoverFrom: "group-hover:from-pink-100",
+    btnHoverTo: "group-hover:to-pink-200",
+    countHover: "group-hover:text-pink-600",
+    bounceBg: "rgba(236, 72, 153, 0.15)",
   },
   {
     id: "like",
     label: "Like",
-    particleClass: "text-amber-400",
-    btnFrom: "#f59e0b",
-    btnTo: "#d97706",
-    burstClass: "text-amber-400",
+    icon: ThumbsUp,
+    colorClass: "text-amber-500",
+    btnFrom: "from-amber-50",
+    btnTo: "to-amber-100",
+    btnHoverFrom: "group-hover:from-amber-100",
+    btnHoverTo: "group-hover:to-amber-200",
+    countHover: "group-hover:text-amber-600",
+    bounceBg: "rgba(251, 146, 60, 0.15)",
   },
   {
     id: "snowflake",
     label: "Salju",
-    particleClass: "text-sky-400",
-    btnFrom: "#38bdf8",
-    btnTo: "#0284c7",
-    burstClass: "text-sky-400",
+    icon: Snowflake,
+    colorClass: "text-blue-400",
+    btnFrom: "from-blue-50",
+    btnTo: "to-blue-100",
+    btnHoverFrom: "group-hover:from-blue-100",
+    btnHoverTo: "group-hover:to-blue-200",
+    countHover: "group-hover:text-blue-600",
+    bounceBg: "rgba(59, 130, 246, 0.15)",
   },
 ];
 
@@ -38,7 +52,6 @@ const POLL_MS = 2000;
 const GRAVITY = 0.005;
 const DRAG = 0.986;
 const SETTLE_SPEED = 0.012;
-
 const MAX_PREPOPULATE = 30;
 
 function formatCount(value) {
@@ -68,18 +81,19 @@ function createParticle(type, x, y, id, velocity) {
     y: spawnY,
     vx: velocity?.vx ?? base.vx,
     vy: velocity?.vy ?? base.vy,
-    opacity: 0.7 + Math.random() * 0.25,
+    opacity: 0.75 + Math.random() * 0.2,
     fading: false,
     settled: false,
-    size: 8 + Math.random() * 5,
+    size: 7 + Math.random() * 4,
     rotate: Math.random() * 360,
     restX: spawnX,
-    restY: 60 + Math.random() * 14,
+    restY: 58 + Math.random() * 16,
   };
 }
 
 function prePopulate(counts, idRef) {
-  const total = (counts.love ?? 0) + (counts.like ?? 0) + (counts.snowflake ?? 0);
+  const total =
+    (counts.love ?? 0) + (counts.like ?? 0) + (counts.snowflake ?? 0);
   if (total === 0) return [];
 
   const scale = Math.min(1, MAX_PREPOPULATE / total);
@@ -89,9 +103,12 @@ function prePopulate(counts, idRef) {
     const n = Math.round((counts[id] ?? 0) * scale);
     for (let i = 0; i < n; i += 1) {
       const x = 16 + Math.random() * 68;
-      const restY = 57 + Math.random() * 16;
+      const restY = 55 + Math.random() * 18;
       result.push({
-        ...createParticle(id, x, restY, `pre-${++idRef.current}`, { vx: 0, vy: 0 }),
+        ...createParticle(id, x, restY, `pre-${++idRef.current}`, {
+          vx: 0,
+          vy: 0,
+        }),
         settled: true,
         vx: 0,
         vy: 0,
@@ -103,147 +120,95 @@ function prePopulate(counts, idRef) {
   return result;
 }
 
-function HeartSvg({ size, className = "" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
-      <path
-        d="M12 21C12 21 3 14.5 3 8.5C3 5.4 5.4 3 8.5 3C10.2 3 11.7 3.9 12 5C12.3 3.9 13.8 3 15.5 3C18.6 3 21 5.4 21 8.5C21 14.5 12 21 12 21Z"
-        fill="currentColor"
-        opacity="0.9"
-      />
-    </svg>
-  );
-}
-
-function ThumbSvg({ size, className = "" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
-      <path
-        d="M14 9V5.5C14 4.1 12.9 3 11.5 3L8 10v11h9.7c.9 0 1.7-.6 1.9-1.5L21 13c.2-1.1-.5-2-1.6-2H14z"
-        fill="currentColor"
-        opacity="0.9"
-      />
-      <path d="M6 21H4C3.4 21 3 20.6 3 20V11C3 10.4 3.4 10 4 10H6V21Z" fill="currentColor" opacity="0.75" />
-    </svg>
-  );
-}
-
-function SnowflakeSvg({ size, className = "" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <line x1="12" y1="2" x2="12" y2="22" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <line x1="5" y1="5" x2="19" y2="19" />
-      <line x1="19" y1="5" x2="5" y2="19" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function GlobeParticle({ type, size, className = "" }) {
+function ParticleIcon({ type, size }) {
   const reaction = REACTIONS.find((r) => r.id === type);
-  const cls = `${reaction?.particleClass ?? "text-sky-300"} drop-shadow-[0_0_4px_rgba(255,255,255,0.9)] ${className}`;
-
-  if (type === "love") return <HeartSvg size={size} className={cls} />;
-  if (type === "like") return <ThumbSvg size={size} className={cls} />;
-  return <SnowflakeSvg size={size} className={cls} />;
+  const Icon = reaction?.icon ?? Snowflake;
+  const filled = type !== "snowflake";
+  return (
+    <Icon
+      size={size}
+      className={reaction?.colorClass ?? "text-blue-400"}
+      fill={filled ? "currentColor" : "none"}
+      strokeWidth={filled ? 0 : 2}
+    />
+  );
 }
 
-function ReactionUiIcon({ type, size = 24, className = "" }) {
-  if (type === "love") return <HeartSvg size={size} className={className} />;
-  if (type === "like") return <ThumbSvg size={size} className={className} />;
-  return <SnowflakeSvg size={size} className={className} />;
-}
-
-function ReactionButton({ reaction, onReact }) {
-  const [bursts, setBursts] = useState([]);
-  const [isHolding, setIsHolding] = useState(false);
+function ReactionButton({ reaction, count, onReact, isBouncing }) {
+  const Icon = reaction.icon;
+  const filled = reaction.id !== "snowflake";
+  const buttonRef = useRef(null);
   const holdTimerRef = useRef(null);
-  const burstIdRef = useRef(0);
 
   const stopHold = useCallback(() => {
-    setIsHolding(false);
     if (holdTimerRef.current) {
       clearInterval(holdTimerRef.current);
       holdTimerRef.current = null;
     }
   }, []);
 
-  const addBurst = useCallback(() => {
-    const id = ++burstIdRef.current;
-    setBursts((prev) => [...prev, { id }]);
-    window.setTimeout(() => setBursts((prev) => prev.filter((b) => b.id !== id)), 560);
-  }, []);
-
-  const fire = useCallback(() => {
-    addBurst();
-    onReact(reaction.id);
-  }, [addBurst, onReact, reaction.id]);
+  const fire = useCallback(
+    () => onReact(reaction.id, buttonRef.current),
+    [onReact, reaction.id],
+  );
 
   const startHold = useCallback(
     (e) => {
       e.preventDefault();
       if (e.button !== undefined && e.button !== 0) return;
-      if (holdTimerRef.current) { clearInterval(holdTimerRef.current); holdTimerRef.current = null; }
-      setIsHolding(true);
+      stopHold();
       fire();
       holdTimerRef.current = window.setInterval(fire, HOLD_INTERVAL_MS);
     },
-    [fire],
+    [fire, stopHold],
   );
 
   useEffect(() => () => stopHold(), [stopHold]);
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onPointerDown={startHold}
       onPointerUp={stopHold}
       onPointerLeave={stopHold}
       onPointerCancel={stopHold}
       aria-label={reaction.label}
-      aria-pressed={isHolding}
-      className="group relative touch-none select-none focus:outline-none"
+      className="group flex touch-none select-none flex-col items-center gap-1.5 focus:outline-none"
     >
-      {bursts.map((burst) => (
-        <span
-          key={burst.id}
-          className={`aira-reaction-burst absolute left-1/2 bottom-[calc(100%+4px)] ${reaction.burstClass}`}
-        >
-          <ReactionUiIcon type={reaction.id} size={20} />
-        </span>
-      ))}
-      <span
-        className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-100 sm:h-16 sm:w-16 ${isHolding ? "scale-90" : "scale-100 group-hover:scale-105"}`}
-        style={{
-          background: `linear-gradient(145deg, ${reaction.btnFrom}, ${reaction.btnTo})`,
-          boxShadow: isHolding
-            ? `0 2px 6px ${reaction.btnTo}55, inset 0 2px 4px rgba(0,0,0,0.15)`
-            : `0 4px 14px ${reaction.btnTo}55, 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.35)`,
-        }}
+      <motion.div
+        className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br shadow-md transition-all duration-300 group-hover:shadow-lg sm:h-14 sm:w-14 ${reaction.btnFrom} ${reaction.btnTo} ${reaction.btnHoverFrom} ${reaction.btnHoverTo}`}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.94 }}
+        animate={
+          isBouncing
+            ? {
+                scale: [1, 1.15, 0.95, 1.08, 1],
+              }
+            : {}
+        }
+        transition={{ duration: 0.5, ease: "easeInOut" }}
       >
-        <ReactionUiIcon
-          type={reaction.id}
-          size={28}
-          className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] sm:hidden"
-        />
-        <ReactionUiIcon
-          type={reaction.id}
-          size={32}
-          className="hidden text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] sm:block"
-        />
-      </span>
+        <motion.div
+          animate={isBouncing ? { scale: [1, 1.3, 0.85, 1.15, 1] } : {}}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+        >
+          <Icon
+            className={`h-6 w-6 sm:h-7 sm:w-7 ${reaction.colorClass}`}
+            fill={filled ? "currentColor" : "none"}
+            strokeWidth={filled ? 0 : 2}
+          />
+        </motion.div>
+      </motion.div>
+      <motion.span
+        key={`${reaction.id}-${count}`}
+        initial={{ scale: 1.2, opacity: 0.6 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.25 }}
+        className={`font-display text-xs font-semibold tabular-nums text-slate-700 transition-colors sm:text-sm ${reaction.countHover}`}
+      >
+        {formatCount(count)}
+      </motion.span>
     </button>
   );
 }
@@ -251,6 +216,8 @@ function ReactionButton({ reaction, onReact }) {
 export default function SnowGlobeSection() {
   const [counts, setCounts] = useState({ love: 0, like: 0, snowflake: 0 });
   const [particles, setParticles] = useState([]);
+  const [buttonBounce, setButtonBounce] = useState(null);
+  const [floatingIcons, setFloatingIcons] = useState([]);
 
   const particlesRef = useRef([]);
   const seenEventIdsRef = useRef(new Set());
@@ -258,6 +225,7 @@ export default function SnowGlobeSection() {
   const rafRef = useRef(null);
   const localIdRef = useRef(0);
   const globeRef = useRef(null);
+  const containerRef = useRef(null);
   const [isShaking, setIsShaking] = useState(false);
 
   const applyCounts = useCallback((nextCounts, source) => {
@@ -292,6 +260,24 @@ export default function SnowGlobeSection() {
     setParticles([...next]);
   }, []);
 
+  const addFloatingIcon = useCallback((type, buttonEl) => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const buttonRect = buttonEl?.getBoundingClientRect();
+    if (!containerRect || !buttonRect) return;
+
+    const id = `float-${Date.now()}-${Math.random()}`;
+    const icon = {
+      id,
+      type,
+      x: buttonRect.left - containerRect.left + buttonRect.width / 2,
+      y: buttonRect.top - containerRect.top + buttonRect.height / 2,
+    };
+    setFloatingIcons((prev) => [...prev, icon]);
+    window.setTimeout(() => {
+      setFloatingIcons((prev) => prev.filter((item) => item.id !== id));
+    }, 2500);
+  }, []);
+
   const syncFromServer = useCallback(
     async (sinceMs, { includeEvents = true } = {}) => {
       try {
@@ -305,7 +291,9 @@ export default function SnowGlobeSection() {
             spawnParticle(ev.type, ev.x, ev.y, ev.id);
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     },
     [applyCounts, spawnParticle],
   );
@@ -319,7 +307,11 @@ export default function SnowGlobeSection() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
 
-        const initialCounts = data.counts ?? { love: 0, like: 0, snowflake: 0 };
+        const initialCounts = data.counts ?? {
+          love: 0,
+          like: 0,
+          snowflake: 0,
+        };
         applyCounts(initialCounts, data.source);
 
         const pre = prePopulate(initialCounts, localIdRef);
@@ -327,8 +319,9 @@ export default function SnowGlobeSection() {
           particlesRef.current = pre;
           setParticles([...pre]);
         }
-
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     loadInitial();
@@ -346,7 +339,8 @@ export default function SnowGlobeSection() {
     function tick() {
       const next = [];
       for (const p of particlesRef.current) {
-        let { x, y, vx, vy, opacity, fading, rotate, settled, restX, restY } = p;
+        let { x, y, vx, vy, opacity, fading, rotate, settled, restX, restY } =
+          p;
 
         if (!fading) {
           if (!settled) {
@@ -387,7 +381,19 @@ export default function SnowGlobeSection() {
         if (fading) opacity -= 0.011;
 
         if (opacity > 0.03) {
-          next.push({ ...p, x, y, vx, vy, opacity, fading, rotate, settled, restX, restY });
+          next.push({
+            ...p,
+            x,
+            y,
+            vx,
+            vy,
+            opacity,
+            fading,
+            rotate,
+            settled,
+            restX,
+            restY,
+          });
         }
       }
 
@@ -397,7 +403,9 @@ export default function SnowGlobeSection() {
     }
 
     rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
   const scatterParticles = useCallback((ox, oy) => {
@@ -447,19 +455,24 @@ export default function SnowGlobeSection() {
           applyCounts(data.counts, data.source);
           if (data.event?.id) seenEventIdsRef.current.add(data.event.id);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     },
     [applyCounts],
   );
 
   const handleReaction = useCallback(
-    (type) => {
+    (type, buttonEl) => {
       const x = 12 + Math.random() * 76;
       const y = 15 + Math.random() * 52;
       spawnParticle(type, x, y);
       postReaction(type, x, y);
+      setButtonBounce(type);
+      window.setTimeout(() => setButtonBounce(null), 500);
+      addFloatingIcon(type, buttonEl);
     },
-    [postReaction, spawnParticle],
+    [addFloatingIcon, postReaction, spawnParticle],
   );
 
   return (
@@ -475,90 +488,123 @@ export default function SnowGlobeSection() {
           Klik ikon — hati, like, atau salju melayang di bola kacanya
         </p>
 
-        <div className="mt-7 flex flex-row items-center justify-center gap-5 sm:gap-6">
-          <div className={`relative shrink-0 ${isShaking ? "aira-globe-shake" : ""}`}>
-            <button
-              type="button"
-              onClick={handleGlobeClick}
-              aria-label="Goyangkan bola kaca"
-              className="relative block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
+        <div
+          ref={containerRef}
+          className="relative mt-7 flex flex-row items-center justify-center gap-5 sm:gap-7"
+        >
+          <div
+            className={`relative w-[min(100%,14rem)] shrink-0 sm:w-60 ${isShaking ? "aira-globe-shake" : ""}`}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 100, damping: 15 }}
+              className="relative aspect-square w-full"
             >
-              <Image
-                src="/globe.png"
-                alt="Bola kaca salju"
-                width={240}
-                height={320}
-                className="h-auto w-[200px] sm:w-[230px]"
-                priority
-              />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white via-slate-100 to-slate-200 shadow-2xl" />
+              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-blue-100 via-slate-50 to-slate-100 opacity-40" />
 
-              <div
-                ref={globeRef}
-                className="pointer-events-none absolute overflow-hidden rounded-full"
-                style={{
-                  left: "11%",
-                  top: "2.5%",
-                  width: "78%",
-                  aspectRatio: "1",
-                }}
+              <button
+                type="button"
+                onClick={handleGlobeClick}
+                aria-label="Goyangkan bola kaca"
+                className="absolute inset-0 cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
               >
-                {particles.map((particle) => (
-                  <div
-                    key={particle.id}
-                    className="absolute will-change-transform"
-                    style={{
-                      left: `${particle.x}%`,
-                      top: `${particle.y}%`,
-                      opacity: particle.opacity,
-                      transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
-                    }}
-                  >
-                    <GlobeParticle type={particle.type} size={particle.size} />
-                  </div>
-                ))}
-              </div>
-            </button>
+                <div
+                  ref={globeRef}
+                  className="absolute inset-0 overflow-hidden rounded-full"
+                >
+                  <Image
+                    src="/snow-globe.png"
+                    alt=""
+                    width={400}
+                    height={400}
+                    className="h-full w-full object-contain drop-shadow-lg"
+                    priority
+                  />
 
-            <div
-              className="pointer-events-none absolute left-[16%] right-[16%]"
-              style={{ bottom: "7%" }}
-            >
-              <div
-                className="rounded-md px-2 py-1.5"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,251,235,0.92) 0%, rgba(255,247,220,0.88) 100%)",
-                  boxShadow:
-                    "inset 0 1px 2px rgba(255,255,255,0.85), inset 0 -1px 2px rgba(69,26,3,0.12)",
-                }}
-              >
-                <div className="grid grid-cols-3 gap-0.5">
-                  {REACTIONS.map((reaction) => (
-                    <div key={reaction.id} className="flex flex-col items-center gap-0.5">
-                      <ReactionUiIcon
-                        type={reaction.id}
-                        size={12}
-                        className={reaction.particleClass}
-                      />
-                      <span className="font-display text-[10px] font-bold leading-none tabular-nums text-aira-navy">
-                        {formatCount(counts[reaction.id])}
-                      </span>
+                  {[...Array(10)].map((_, i) => (
+                    <motion.div
+                      key={`snow-${i}`}
+                      className="pointer-events-none absolute h-1 w-1 rounded-full bg-white opacity-50"
+                      style={{
+                        left: `${8 + ((i * 17) % 84)}%`,
+                        top: "-4%",
+                      }}
+                      animate={{
+                        y: ["0%", "115%"],
+                        x: [0, Math.sin(i) * 12, Math.cos(i) * 8],
+                        opacity: [0.7, 0.25, 0.7],
+                      }}
+                      transition={{
+                        duration: 5.5 + i * 0.4,
+                        repeat: Infinity,
+                        ease: "linear",
+                        delay: i * 0.35,
+                      }}
+                    />
+                  ))}
+
+                  {particles.map((particle) => (
+                    <div
+                      key={particle.id}
+                      className="pointer-events-none absolute will-change-transform"
+                      style={{
+                        left: `${particle.x}%`,
+                        top: `${particle.y}%`,
+                        opacity: particle.opacity,
+                        transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
+                      }}
+                    >
+                      <ParticleIcon type={particle.type} size={particle.size} />
                     </div>
                   ))}
+
+                  <div className="pointer-events-none absolute left-2 top-2 h-1/3 w-1/3 rounded-full bg-white opacity-20 blur-xl" />
                 </div>
-              </div>
-            </div>
+              </button>
+            </motion.div>
+
+            <div className="absolute bottom-0 left-1/2 h-6 w-3/4 -translate-x-1/2 translate-y-full rounded-full bg-gradient-to-b from-slate-300 to-transparent opacity-25 blur-xl" />
           </div>
 
-          <div className="flex flex-col items-center gap-3.5 sm:gap-4">
+          <motion.div
+            initial={{ x: 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
+            className="flex flex-col gap-3.5 sm:gap-4"
+          >
             {REACTIONS.map((reaction) => (
               <ReactionButton
                 key={reaction.id}
                 reaction={reaction}
+                count={counts[reaction.id]}
+                isBouncing={buttonBounce === reaction.id}
                 onReact={handleReaction}
               />
             ))}
-          </div>
+          </motion.div>
+
+          <AnimatePresence>
+            {floatingIcons.map((icon) => (
+              <motion.div
+                key={icon.id}
+                initial={{ x: icon.x, y: icon.y, opacity: 1, scale: 1 }}
+                animate={{
+                  x: icon.x + (Math.random() - 0.5) * 60,
+                  y: icon.y - 160,
+                  opacity: 0,
+                  scale: 0.45,
+                  rotate: Math.random() * 180,
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 2.2, ease: "easeOut" }}
+                className={`pointer-events-none absolute ${REACTIONS.find((r) => r.id === icon.type)?.colorClass ?? ""}`}
+              >
+                <ParticleIcon type={icon.type} size={22} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </FeatureCard>
     </section>
