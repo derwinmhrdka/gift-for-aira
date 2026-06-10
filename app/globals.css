@@ -29,6 +29,22 @@ body {
   animation: aira-globe-shake 0.48s ease-in-out;
 }
 
+@keyframes aira-reaction-burst {
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, 4px) scale(0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -22px) scale(1);
+  }
+}
+
+.aira-reaction-burst {
+  animation: aira-reaction-burst 0.55s ease-out forwards;
+  pointer-events: none;
+}
+
 /* Klik kartu: partikel cahaya + salju (ringan, transform + opacity saja) */
 @keyframes aira-spark {
   0% {
@@ -291,6 +307,11 @@ body {
 
   .aira-globe-shake {
     animation: none !important;
+  }
+
+  .aira-reaction-burst {
+    animation: none !important;
+    opacity: 0 !important;
   }
 
   .aira-letter-flip {

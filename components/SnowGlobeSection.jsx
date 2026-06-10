@@ -8,31 +8,33 @@ const REACTIONS = [
   {
     id: "love",
     label: "Love",
-    emoji: "❤️",
-    iconClass: "text-rose-400",
+    iconClass: "text-rose-500",
     particleClass: "text-rose-300",
-    bgClass: "bg-rose-50 hover:bg-rose-100",
+    bgClass: "bg-rose-50 hover:bg-rose-100 active:bg-rose-100",
     ringClass: "focus-visible:ring-rose-300",
+    burstClass: "text-rose-400",
   },
   {
     id: "like",
     label: "Like",
-    emoji: "👍",
-    iconClass: "text-amber-400",
+    iconClass: "text-amber-500",
     particleClass: "text-amber-200",
-    bgClass: "bg-amber-50 hover:bg-amber-100",
+    bgClass: "bg-amber-50 hover:bg-amber-100 active:bg-amber-100",
     ringClass: "focus-visible:ring-amber-300",
+    burstClass: "text-amber-400",
   },
   {
     id: "snowflake",
     label: "Snowflake",
-    emoji: "❄️",
-    iconClass: "text-sky-400",
+    iconClass: "text-sky-500",
     particleClass: "text-sky-300",
-    bgClass: "bg-sky-50 hover:bg-sky-100",
+    bgClass: "bg-sky-50 hover:bg-sky-100 active:bg-sky-100",
     ringClass: "focus-visible:ring-sky-300",
+    burstClass: "text-sky-400",
   },
 ];
+
+const HOLD_INTERVAL_MS = 320;
 
 const MAX_PARTICLES = 48;
 const FADE_START = 36;
@@ -72,7 +74,7 @@ function createParticle(type, x, y, id, velocity) {
     opacity: 0.55 + Math.random() * 0.35,
     fading: false,
     settled: false,
-    size: 4 + Math.random() * 3,
+    size: 7 + Math.random() * 4,
     rotate: Math.random() * 360,
     restX: spawnX,
     restY: 58 + Math.random() * 16,
@@ -148,22 +150,140 @@ function GlobeParticle({ type, size, rotate, className = "" }) {
   );
 }
 
-function CounterIcon({ type, className = "" }) {
+function ReactionUiIcon({ type, size = 24, className = "" }) {
   const reaction = REACTIONS.find((item) => item.id === type);
+  const color = reaction?.iconClass ?? "text-slate-500";
+
+  if (type === "love") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        className={`${color} ${className}`}
+        aria-hidden
+      >
+        <path
+          d="M12 20.8s-6.8-4.4-6.8-9.2C5.2 8.6 7.4 6.4 9.8 6.4c1.4 0 2.7.7 3.5 1.8.8-1.1 2.1-1.8 3.5-1.8 2.4 0 4.6 2.2 4.6 5.2 0 4.8-6.8 9.2-6.8 9.2z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+
+  if (type === "like") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        className={`${color} ${className}`}
+        aria-hidden
+      >
+        <path
+          d="M9.2 20.4V9.1H6.4c-.9 0-1.6.7-1.6 1.6v7.3c0 .9.7 1.6 1.6 1.6h2.8z"
+          fill="currentColor"
+        />
+        <path
+          d="M9.2 9.1l6.1-3.4c1.2-.7 2.7.2 2.7 1.6v2.1l3.2 5.4c.5.9-.1 2-1.1 2h-11V9.1z"
+          fill="currentColor"
+          opacity="0.92"
+        />
+      </svg>
+    );
+  }
+
   return (
-    <GlobeParticle
-      type={type}
-      size={14}
-      rotate={0}
-      className={`${reaction?.iconClass ?? ""} ${className}`}
-    />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`${color} ${className}`}
+      aria-hidden
+    >
+      <path d="M12 2v20M2 12h20M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ReactionButton({ reaction, onReact }) {
+  const [bursts, setBursts] = useState([]);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdTimerRef = useRef(null);
+  const burstIdRef = useRef(0);
+
+  const stopHold = useCallback(() => {
+    setIsHolding(false);
+    if (holdTimerRef.current) {
+      clearInterval(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }, []);
+
+  const addBurst = useCallback(() => {
+    const id = ++burstIdRef.current;
+    setBursts((prev) => [...prev, { id }]);
+    window.setTimeout(() => {
+      setBursts((prev) => prev.filter((burst) => burst.id !== id));
+    }, 560);
+  }, []);
+
+  const fire = useCallback(() => {
+    addBurst();
+    onReact(reaction.id);
+  }, [addBurst, onReact, reaction.id]);
+
+  const startHold = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (event.button !== 0) return;
+      if (holdTimerRef.current) {
+        clearInterval(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
+      setIsHolding(true);
+      fire();
+      holdTimerRef.current = window.setInterval(fire, HOLD_INTERVAL_MS);
+    },
+    [fire],
+  );
+
+  useEffect(() => () => stopHold(), [stopHold]);
+
+  return (
+    <button
+      type="button"
+      onPointerDown={startHold}
+      onPointerUp={stopHold}
+      onPointerLeave={stopHold}
+      onPointerCancel={stopHold}
+      aria-label={reaction.label}
+      aria-pressed={isHolding}
+      className={`relative inline-flex h-12 w-12 touch-none select-none items-center justify-center rounded-2xl border border-white/70 shadow-md shadow-sky-200/30 transition active:scale-95 sm:h-14 sm:w-14 ${reaction.bgClass} ${reaction.ringClass} ${isHolding ? "scale-95 ring-2 ring-sky-300/60" : ""} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
+    >
+      {bursts.map((burst) => (
+        <span
+          key={burst.id}
+          className={`aira-reaction-burst absolute left-1/2 bottom-[calc(100%+2px)] ${reaction.burstClass}`}
+        >
+          <ReactionUiIcon type={reaction.id} size={18} />
+        </span>
+      ))}
+      <ReactionUiIcon type={reaction.id} size={26} className="sm:hidden" />
+      <ReactionUiIcon type={reaction.id} size={30} className="hidden sm:block" />
+    </button>
   );
 }
 
 export default function SnowGlobeSection() {
   const [counts, setCounts] = useState({ love: 0, like: 0, snowflake: 0 });
   const [particles, setParticles] = useState([]);
-  const [sending, setSending] = useState(null);
 
   const particlesRef = useRef([]);
   const seenEventIdsRef = useRef(new Set());
@@ -173,12 +293,22 @@ export default function SnowGlobeSection() {
   const globeRef = useRef(null);
   const [isShaking, setIsShaking] = useState(false);
 
-  const applyCounts = useCallback((nextCounts) => {
+  const applyCounts = useCallback((nextCounts, source) => {
     if (!nextCounts) return;
-    setCounts({
-      love: Number(nextCounts.love) || 0,
-      like: Number(nextCounts.like) || 0,
-      snowflake: Number(nextCounts.snowflake) || 0,
+    setCounts((prev) => {
+      const next = {
+        love: Number(nextCounts.love) || 0,
+        like: Number(nextCounts.like) || 0,
+        snowflake: Number(nextCounts.snowflake) || 0,
+      };
+
+      if (source === "airtable") return next;
+
+      return {
+        love: Math.max(prev.love, next.love),
+        like: Math.max(prev.like, next.like),
+        snowflake: Math.max(prev.snowflake, next.snowflake),
+      };
     });
   }, []);
 
@@ -208,7 +338,7 @@ export default function SnowGlobeSection() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
 
-        applyCounts(data.counts);
+        applyCounts(data.counts, data.source);
 
         if (includeEvents) {
           for (const event of data.events ?? []) {
@@ -361,33 +491,37 @@ export default function SnowGlobeSection() {
     window.setTimeout(() => setIsShaking(false), 480);
   }
 
-  async function handleReaction(type) {
-    if (sending) return;
-
-    const x = 10 + Math.random() * 80;
-    const y = 15 + Math.random() * 55;
-    spawnParticle(type, x, y);
-
-    setSending(type);
-    try {
-      const res = await fetch("/api/reactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, x, y }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        applyCounts(data.counts);
-        if (data.event?.id) {
-          seenEventIdsRef.current.add(data.event.id);
+  const postReaction = useCallback(
+    async (type, x, y) => {
+      try {
+        const res = await fetch("/api/reactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, x, y }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          applyCounts(data.counts, data.source);
+          if (data.event?.id) {
+            seenEventIdsRef.current.add(data.event.id);
+          }
         }
+      } catch {
+        /* local particle already shown */
       }
-    } catch {
-      /* local particle already shown */
-    } finally {
-      setSending(null);
-    }
-  }
+    },
+    [applyCounts],
+  );
+
+  const handleReaction = useCallback(
+    (type) => {
+      const x = 10 + Math.random() * 80;
+      const y = 15 + Math.random() * 55;
+      spawnParticle(type, x, y);
+      postReaction(type, x, y);
+    },
+    [postReaction, spawnParticle],
+  );
 
   return (
     <section className="w-full" aria-labelledby="snow-globe-heading">
@@ -464,16 +598,32 @@ export default function SnowGlobeSection() {
                 <div className="pointer-events-none absolute bottom-[12%] right-[14%] h-4 w-6 rounded-full bg-white/20 blur-[2px]" />
               </button>
 
-              <div className="relative z-10 -mt-3 mx-auto w-[88%] rounded-[1.35rem] border border-amber-950/20 bg-gradient-to-b from-amber-700 via-amber-800 to-amber-950 px-3 py-3 shadow-[0_8px_20px_rgba(69,26,3,0.22)]">
-                <div className="rounded-xl bg-white/96 px-2 py-2.5 shadow-inner shadow-amber-950/5">
-                  <div className="grid grid-cols-3 gap-1">
+              <div
+                className="relative z-10 -mt-2 mx-auto w-[68%] rounded-xl px-1.5 py-1.5"
+                style={{
+                  background:
+                    "linear-gradient(180deg, #a16207 0%, #92400e 45%, #78350f 100%)",
+                  boxShadow:
+                    "0 4px 10px rgba(69,26,3,0.28), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 4px rgba(0,0,0,0.18)",
+                }}
+              >
+                <div
+                  className="rounded-lg px-1.5 py-1.5"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(255,251,235,0.94) 100%)",
+                    boxShadow:
+                      "inset 0 1px 2px rgba(255,255,255,0.9), inset 0 -1px 2px rgba(120,53,15,0.08)",
+                  }}
+                >
+                  <div className="grid grid-cols-3 gap-0.5">
                     {REACTIONS.map((reaction) => (
                       <div
                         key={reaction.id}
-                        className="flex flex-col items-center gap-1 rounded-lg px-1 py-1"
+                        className="flex flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5"
                       >
-                        <CounterIcon type={reaction.id} />
-                        <span className="font-display text-xs font-bold tabular-nums text-aira-navy">
+                        <ReactionUiIcon type={reaction.id} size={16} />
+                        <span className="font-display text-[10px] font-bold leading-none tabular-nums text-aira-navy">
                           {formatCount(counts[reaction.id])}
                         </span>
                       </div>
@@ -486,16 +636,11 @@ export default function SnowGlobeSection() {
 
           <div className="flex flex-row gap-3 sm:flex-col sm:gap-3.5">
             {REACTIONS.map((reaction) => (
-              <button
+              <ReactionButton
                 key={reaction.id}
-                type="button"
-                onClick={() => handleReaction(reaction.id)}
-                disabled={Boolean(sending)}
-                aria-label={reaction.label}
-                className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 text-2xl shadow-md shadow-sky-200/30 transition active:scale-95 disabled:opacity-60 sm:h-14 sm:w-14 ${reaction.bgClass} ${reaction.ringClass} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
-              >
-                {reaction.emoji}
-              </button>
+                reaction={reaction}
+                onReact={handleReaction}
+              />
             ))}
           </div>
         </div>
