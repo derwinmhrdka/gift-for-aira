@@ -1,7 +1,7 @@
 "use client";
 
 import AdminAccessModal from "@/components/AdminAccessModal";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const IDLE_MESSAGES = [
   "Selamat datang ongkel onty ❄️",
@@ -14,18 +14,87 @@ const IDLE_MESSAGES = [
 const IDLE_WAIT_MS = 5000;
 const IDLE_VISIBLE_MS = 2500;
 
+const BUBBLE_RADIUS = 14;
+const TAIL_LENGTH = 9;
+const TAIL_LEFT = 26;
+const TAIL_RIGHT = 42;
+const TAIL_TIP = 34;
+
+function createSpeechBubblePath(width, height) {
+  const w = width;
+  const h = height;
+  const r = BUBBLE_RADIUS;
+
+  return [
+    `M ${r} 0.5`,
+    `L ${w - r} 0.5`,
+    `Q ${w - 0.5} 0.5 ${w - 0.5} ${r}`,
+    `L ${w - 0.5} ${h - r}`,
+    `Q ${w - 0.5} ${h - 0.5} ${w - r} ${h - 0.5}`,
+    `L ${TAIL_RIGHT} ${h - 0.5}`,
+    `L ${TAIL_TIP} ${h + TAIL_LENGTH}`,
+    `L ${TAIL_LEFT} ${h - 0.5}`,
+    `L ${r} ${h - 0.5}`,
+    `Q 0.5 ${h - 0.5} 0.5 ${h - r}`,
+    `L 0.5 ${r}`,
+    `Q 0.5 0.5 ${r} 0.5`,
+    "Z",
+  ].join(" ");
+}
+
 function SpeechBubble({
   children,
   interactive = false,
   onAction,
   className = "",
 }) {
+  const contentRef = useRef(null);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
+
+  useLayoutEffect(() => {
+    const node = contentRef.current;
+    if (!node) return undefined;
+
+    function measure() {
+      const rect = node.getBoundingClientRect();
+      setDims({
+        w: Math.ceil(rect.width),
+        h: Math.ceil(rect.height),
+      });
+    }
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [children]);
+
+  const path =
+    dims.w > 0 && dims.h > 0 ? createSpeechBubblePath(dims.w, dims.h) : "";
+
   return (
     <div
       className={`absolute bottom-[calc(100%-10px)] left-0 z-[222] w-max max-w-[min(14rem,calc(100vw-2rem))] ${className}`}
     >
-      <div className="relative pb-2 drop-shadow-[0_6px_20px_rgba(100,116,139,0.12)]">
-        <div className="rounded-2xl border border-slate-200/70 bg-white/95 px-3.5 py-2.5">
+      <div className="relative" style={{ paddingBottom: TAIL_LENGTH }}>
+        {path ? (
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute left-0 top-0 overflow-visible drop-shadow-[0_6px_20px_rgba(100,116,139,0.12)]"
+            width={dims.w}
+            height={dims.h + TAIL_LENGTH}
+          >
+            <path
+              d={path}
+              fill="rgba(255,255,255,0.95)"
+              stroke="rgba(203,213,225,0.7)"
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+          </svg>
+        ) : null}
+
+        <div ref={contentRef} className="relative px-3.5 py-2.5">
           {interactive ? (
             <button
               type="button"
@@ -40,17 +109,6 @@ function SpeechBubble({
             </p>
           )}
         </div>
-
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute left-[2.4rem] sm:left-[2.65rem]"
-          style={{ top: "calc(100% - 2px)" }}
-          width="14"
-          height="9"
-          viewBox="0 0 14 9"
-        >
-          <path d="M0 0 H14 L7 9 Z" fill="rgba(255,255,255,0.95)" />
-        </svg>
       </div>
     </div>
   );
