@@ -601,7 +601,7 @@ export default function FortuneGachaSection() {
           Bambu Ramalan Keberuntungan
         </h2>
         <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
-          Pilih bambu ramalanmu — hasil berlaku hari ini dan reset otomatis besok (WIB)
+          Tes keberuntunganmu hari ini 🍀
         </p>
 
         <div className="relative mt-8 flex flex-col items-center">
