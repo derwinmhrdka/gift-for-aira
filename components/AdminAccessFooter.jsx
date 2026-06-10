@@ -82,14 +82,18 @@ export default function AdminAccessFooter() {
 
   return (
     <>
-      <div className="pointer-events-none relative z-10 mt-8 flex justify-center pb-2">
+      <div className="pointer-events-none relative z-10 mt-8 flex justify-center pb-4">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="pointer-events-auto text-[9px] leading-none text-slate-300/80 transition hover:text-slate-400 focus:outline-none focus-visible:text-slate-500"
+          className={`pointer-events-auto text-[11px] font-medium tracking-wide underline-offset-2 transition hover:underline focus:outline-none focus-visible:underline ${
+            isAdmin
+              ? "text-emerald-600 hover:text-emerald-700"
+              : "text-slate-500 hover:text-slate-600"
+          }`}
           aria-label="Akses admin"
         >
-          ·
+          {isAdmin ? "Admin mode" : "Switch to admin mode"}
         </button>
       </div>
 
