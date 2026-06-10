@@ -1,6 +1,11 @@
 "use client";
 
 import FeatureCard from "@/components/FeatureCard";
+import {
+  playGlobeReactionSound,
+  playGlobeShakeSound,
+  unlockGuessSounds,
+} from "@/lib/guessSounds";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, Snowflake, ThumbsUp } from "lucide-react";
 import Image from "next/image";
@@ -688,6 +693,8 @@ export default function SnowGlobeSection() {
 
   function handleGlobeClick(e) {
     e.stopPropagation();
+    unlockGuessSounds();
+    playGlobeShakeSound();
     const glass = glassRef.current;
     if (!glass) return;
     const rect = glass.getBoundingClientRect();
@@ -729,6 +736,8 @@ export default function SnowGlobeSection() {
 
   const handleReaction = useCallback(
     (type, buttonEl) => {
+      unlockGuessSounds();
+      playGlobeReactionSound(type);
       const spawn = spawnFromTop(40 + Math.random() * 20);
       spawnParticle(type, spawn.x, undefined);
       bumpLocalCount(type);

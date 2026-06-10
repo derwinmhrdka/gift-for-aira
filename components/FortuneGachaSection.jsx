@@ -1,12 +1,19 @@
 "use client";
 
+import { useAdminMode } from "@/components/AdminModeProvider";
 import FeatureCard from "@/components/FeatureCard";
+import { FORTUNE_CATEGORIES } from "@/lib/fortuneData";
 import {
-  FORTUNE_CATEGORIES,
-  rollFortune,
-} from "@/lib/fortuneData";
+  playFortuneResultSound,
+  playGachaShakeSound,
+  unlockGuessSounds,
+} from "@/lib/guessSounds";
+import { resolveFortuneForVisitor } from "@/lib/fortunePersistence";
+import { getVisitorId } from "@/lib/visitorId";
 import { AnimatePresence, motion } from "framer-motion";
+import { Box, ScrollText, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const SHAKE_MS = 1500;
 const STICK_MS = 450;
@@ -38,13 +45,121 @@ function runLuckTicker(target, duration, onUpdate, signal) {
   requestAnimationFrame(frame);
 }
 
+function makeLuckSparkParticles(heavy = false) {
+  const n = heavy ? 32 : 22;
+  return Array.from({ length: n }, (_, i) => {
+    const angle = (Math.PI * 2 * i) / n + (Math.random() - 0.5) * 0.55;
+    const dist = heavy ? 34 + Math.random() * 72 : 26 + Math.random() * 58;
+    return {
+      dx: Math.cos(angle) * dist,
+      dy: Math.sin(angle) * dist,
+      delay: Math.floor(Math.random() * 160),
+      size: heavy ? 3 + Math.random() * 5 : 2 + Math.random() * 4,
+      kind: Math.random() > 0.72 ? "star" : "glow",
+    };
+  });
+}
+
+function FortuneLuckSparks({ tier, active }) {
+  const [bursts, setBursts] = useState([]);
+
+  useEffect(() => {
+    if (!active || !tier || typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const ids = [];
+
+    const spawn = (delay, heavy) => {
+      const id = `${Date.now()}-${Math.random()}`;
+      ids.push(id);
+      window.setTimeout(() => {
+        setBursts((prev) => [
+          ...prev,
+          {
+            id,
+            x: cx + (Math.random() - 0.5) * 80,
+            y: cy + (Math.random() - 0.5) * 60,
+            heavy,
+            particles: makeLuckSparkParticles(heavy),
+          },
+        ]);
+        window.setTimeout(() => {
+          setBursts((prev) => prev.filter((b) => b.id !== id));
+        }, 820);
+      }, delay);
+    };
+
+    spawn(0, true);
+    spawn(180, false);
+    spawn(360, false);
+
+    return () => {
+      setBursts([]);
+    };
+  }, [active, tier]);
+
+  if (typeof document === "undefined" || bursts.length === 0) return null;
+
+  const spark = tier.spark;
+
+  return createPortal(
+    <div
+      className="pointer-events-none fixed inset-0 z-[205] overflow-hidden"
+      aria-hidden
+    >
+      {bursts.flatMap((b) =>
+        b.particles.map((p, i) => {
+          if (p.kind === "star") {
+            return (
+              <Sparkles
+                key={`${b.id}-sp-${i}`}
+                className={`aira-flake absolute motion-reduce:hidden ${spark.star}`}
+                style={{
+                  left: b.x,
+                  top: b.y,
+                  width: (b.heavy ? 11 : 9) + (i % 3),
+                  height: (b.heavy ? 11 : 9) + (i % 3),
+                  "--dx": `${p.dx * 0.9}px`,
+                  "--dy": `${p.dy * 0.9}px`,
+                  animation: `aira-flake 0.78s ease-out ${p.delay}ms forwards`,
+                }}
+              />
+            );
+          }
+          return (
+            <span
+              key={`${b.id}-gl-${i}`}
+              className={`aira-spark-dot absolute rounded-full motion-reduce:hidden ${spark.dot}`}
+              style={{
+                left: b.x,
+                top: b.y,
+                width: p.size,
+                height: p.size,
+                "--dx": `${p.dx}px`,
+                "--dy": `${p.dy}px`,
+                animation: `aira-spark 0.68s cubic-bezier(0.18, 0.9, 0.32, 1) ${p.delay}ms forwards`,
+              }}
+            />
+          );
+        }),
+      )}
+    </div>,
+    document.body,
+  );
+}
+
 function FortuneScroll({
   categoryLabel,
+  CategoryIcon,
   tier,
   percent,
   text,
   tickerActive,
+  fromCache,
 }) {
+  const TierIcon = tier.icon;
   const [displayPercent, setDisplayPercent] = useState(0);
   const tickerRef = useRef(null);
 
@@ -74,42 +189,54 @@ function FortuneScroll({
       animate={{ scaleY: 1, opacity: 1 }}
       transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
       style={{ transformOrigin: "top center" }}
-      className="relative mx-auto w-full max-w-sm overflow-hidden rounded-sm shadow-2xl shadow-stone-900/25"
+      className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl shadow-sky-200/40 ring-1 ring-white/60"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(120,53,15,0.03)_3px,rgba(120,53,15,0.03)_4px)]" />
-      <div className="relative border border-amber-200/80 bg-gradient-to-b from-[#fffdf8] via-[#faf6ee] to-[#f3ebe0] px-5 py-6 sm:px-7 sm:py-8">
-        <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-amber-300/70" />
-        <p className="font-display text-center text-lg font-bold tracking-wide text-[#5c1a1a] sm:text-xl">
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(147,197,253,0.04)_3px,rgba(147,197,253,0.04)_4px)]" />
+      <div className="relative border border-sky-100/90 bg-gradient-to-b from-white via-aira-iceLight to-aira-snow px-5 py-6 backdrop-blur-sm sm:px-7 sm:py-8">
+        <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-sky-100/80 ring-1 ring-sky-200/70">
+          <CategoryIcon
+            className="h-5 w-5 text-aira-navy"
+            strokeWidth={2}
+            aria-hidden
+          />
+        </div>
+        <p className="font-display text-center text-lg font-bold tracking-wide text-aira-navy sm:text-xl">
           {categoryLabel}
         </p>
         <div className="mt-4 flex justify-center">
           <span
-            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 sm:text-sm ${tier.badgeClass}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 sm:text-sm ${tier.badgeClass}`}
           >
+            <TierIcon className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
             {tier.label}
           </span>
         </div>
-        <p className="mt-5 text-center font-mono text-2xl font-semibold tabular-nums tracking-tight text-[#3d2b1f] sm:text-3xl">
+        <p className="mt-5 text-center font-mono text-2xl font-semibold tabular-nums tracking-tight text-aira-navy sm:text-3xl">
           Tingkat Hoki:{" "}
           <motion.span
             key={displayPercent}
-            className="inline-block min-w-[3ch] text-[#7f1d1d]"
+            className={`inline-block min-w-[3ch] ${tier.scoreClass}`}
           >
             {displayPercent}%
           </motion.span>
         </p>
-        <div className="mx-auto mt-5 h-px w-full max-w-[12rem] bg-gradient-to-r from-transparent via-amber-800/25 to-transparent" />
-        <p className="mt-5 text-center text-sm leading-relaxed text-stone-700 sm:text-base">
+        <div className="mx-auto mt-5 h-px w-full max-w-[12rem] bg-gradient-to-r from-transparent via-sky-300/50 to-transparent" />
+        <p className="mt-5 text-center text-sm leading-relaxed text-slate-600 sm:text-base">
           {text}
         </p>
-        <div className="mx-auto mt-6 h-1 w-12 rounded-full bg-amber-300/60" />
+        {fromCache && (
+          <p className="mt-5 text-center text-xs text-slate-400">
+            Ramalan harianmu untuk kategori ini
+          </p>
+        )}
+        <div className="mx-auto mt-6 h-1 w-12 rounded-full bg-sky-200/80" />
       </div>
-      <div className="h-2 bg-gradient-to-b from-[#e8dcc8] to-[#d4c4aa]" />
+      <div className="h-2 bg-gradient-to-b from-aira-frost to-aira-ice" />
     </motion.div>
   );
 }
 
-function GachaBox({ phase, showStick }) {
+function GachaBox({ phase, showStick, CategoryIcon }) {
   const isShaking = phase === "shaking";
 
   return (
@@ -131,44 +258,52 @@ function GachaBox({ phase, showStick }) {
         className="relative h-full w-full"
       >
         <div
-          className="absolute inset-x-2 bottom-2 top-6 shadow-[0_18px_40px_-12px_rgba(92,26,26,0.35),inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-6px_12px_rgba(120,53,15,0.12)]"
+          className="absolute inset-x-2 bottom-2 top-6 shadow-[0_18px_40px_-12px_rgba(56,189,248,0.28),inset_0_2px_0_rgba(255,255,255,0.75),inset_0_-6px_12px_rgba(147,197,253,0.15)]"
           style={{
             clipPath: OCTAGON_CLIP,
             background:
-              "linear-gradient(145deg, #e8d4b8 0%, #d4b896 35%, #c9a882 65%, #b8956e 100%)",
+              "linear-gradient(145deg, #F4FAFF 0%, #EAF3FB 30%, #C5DDF0 65%, #B8D4EB 100%)",
           }}
         >
           <div
-            className="pointer-events-none absolute inset-0 opacity-40"
+            className="pointer-events-none absolute inset-0 opacity-50"
             style={{
               background:
-                "repeating-linear-gradient(92deg, transparent, transparent 8px, rgba(139,90,43,0.08) 8px, rgba(139,90,43,0.08) 9px)",
+                "repeating-linear-gradient(92deg, transparent, transparent 8px, rgba(255,255,255,0.35) 8px, rgba(255,255,255,0.35) 9px)",
             }}
           />
-          <div className="absolute inset-x-[18%] top-[6%] h-[10%] rounded-full bg-gradient-to-b from-stone-800/50 to-stone-900/70 shadow-inner" />
-          <div className="absolute inset-x-[22%] top-[14%] flex justify-center gap-1 opacity-30">
+          <div className="absolute inset-x-[18%] top-[6%] h-[10%] rounded-full bg-gradient-to-b from-aira-navy/35 to-aira-navy/55 shadow-inner" />
+          <div className="absolute inset-x-[22%] top-[14%] flex justify-center gap-2 opacity-40">
             {[0, 1, 2].map((i) => (
-              <span
+              <ScrollText
                 key={i}
-                className="h-8 w-px bg-amber-900/40"
-                style={{ transform: `rotate(${i * 4 - 4}deg)` }}
+                className="h-4 w-4 text-sky-400/70"
+                strokeWidth={1.75}
+                style={{ transform: `rotate(${i * 6 - 6}deg)` }}
+                aria-hidden
               />
             ))}
           </div>
-          <p
-            className="absolute inset-x-0 bottom-[18%] text-center font-display text-[0.65rem] font-bold uppercase tracking-[0.25em] text-[#5c1a1a]/70 sm:text-xs"
-            aria-hidden
-          >
-            Ramalan
-          </p>
+          <div className="absolute inset-x-0 bottom-[16%] flex flex-col items-center gap-1">
+            <Box
+              className="h-5 w-5 text-sky-500/50 sm:h-6 sm:w-6"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <CategoryIcon
+              className="h-7 w-7 text-aira-navy/60 sm:h-8 sm:w-8"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+          </div>
         </div>
 
         <div
-          className="absolute inset-x-3 top-0 h-8 shadow-md"
+          className="absolute inset-x-3 top-0 h-8 shadow-md shadow-sky-200/40"
           style={{
             clipPath: OCTAGON_CLIP,
             background:
-              "linear-gradient(180deg, #f0e0c8 0%, #dcc4a4 55%, #c9a882 100%)",
+              "linear-gradient(180deg, #ffffff 0%, #EAF3FB 55%, #C5DDF0 100%)",
           }}
         />
 
@@ -183,26 +318,31 @@ function GachaBox({ phase, showStick }) {
               className="absolute left-1/2 top-[8%] z-10 -translate-x-1/2"
             >
               <div className="flex flex-col items-center">
-                <div className="h-16 w-2 rounded-full bg-gradient-to-r from-[#e8dcc8] via-[#f5ead8] to-[#d4c4aa] shadow-sm ring-1 ring-amber-900/15 sm:h-20" />
-                <div className="mt-1 h-3 w-7 rounded-sm bg-[#faf6ee] shadow ring-1 ring-amber-900/10" />
-                <p className="mt-0.5 font-display text-[0.55rem] font-bold uppercase tracking-widest text-[#7f1d1d]/80">
-                  hoki
-                </p>
+                <div className="h-16 w-2 rounded-full bg-gradient-to-r from-white via-aira-iceLight to-aira-ice shadow-sm ring-1 ring-sky-200/50 sm:h-20" />
+                <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-md bg-white/95 shadow ring-1 ring-sky-200/60">
+                  <ScrollText
+                    className="h-4 w-4 text-aira-navy/75"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
 
-      <div className="absolute -bottom-1 left-1/2 h-3 w-3/4 -translate-x-1/2 rounded-full bg-stone-900/10 blur-md" />
+      <div className="absolute -bottom-1 left-1/2 h-3 w-3/4 -translate-x-1/2 rounded-full bg-sky-300/25 blur-md" />
     </div>
   );
 }
 
 export default function FortuneGachaSection() {
+  const isAdmin = useAdminMode();
   const [categoryId, setCategoryId] = useState(FORTUNE_CATEGORIES[0].id);
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
+  const [isCachedResult, setIsCachedResult] = useState(false);
   const [showStick, setShowStick] = useState(false);
   const [showScroll, setShowScroll] = useState(false);
   const [tickerActive, setTickerActive] = useState(false);
@@ -210,6 +350,7 @@ export default function FortuneGachaSection() {
   const runIdRef = useRef(0);
 
   const timersRef = useRef([]);
+  const closeScrollRef = useRef(() => {});
 
   const clearTimers = useCallback(() => {
     for (const id of timersRef.current) {
@@ -226,24 +367,56 @@ export default function FortuneGachaSection() {
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
+  useEffect(() => {
+    if (!showScroll) return undefined;
+
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") closeScrollRef.current();
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showScroll]);
+
   const activeCategory =
     FORTUNE_CATEGORIES.find((c) => c.id === categoryId) ??
     FORTUNE_CATEGORIES[0];
 
   const isAnimating = phase !== "idle" && phase !== "revealed";
 
-  const handleDraw = useCallback(() => {
+  const handleDraw = useCallback(async () => {
     clearTimers();
     setShowStick(false);
     setShowScroll(false);
     setTickerActive(false);
+    setIsCachedResult(false);
 
     const currentRun = runIdRef.current + 1;
     runIdRef.current = currentRun;
     setRunId(currentRun);
 
-    const rolled = rollFortune(categoryId);
+    const visitorId = isAdmin ? "" : await getVisitorId();
+    const rolled = await resolveFortuneForVisitor(categoryId, {
+      isAdmin,
+      visitorId,
+    });
+
+    if (runIdRef.current !== currentRun) return;
+
+    unlockGuessSounds();
+    playGachaShakeSound();
+
     setResult(rolled);
+    setIsCachedResult(Boolean(rolled.cached));
     setPhase("shaking");
 
     schedule(() => {
@@ -260,10 +433,11 @@ export default function FortuneGachaSection() {
           if (runIdRef.current !== currentRun) return;
           setTickerActive(true);
           setPhase("revealed");
+          playFortuneResultSound(rolled.tierKey);
         }, 320);
       }, STICK_MS + 120);
     }, SHAKE_MS);
-  }, [categoryId, clearTimers, schedule]);
+  }, [categoryId, clearTimers, isAdmin, schedule]);
 
   const closeScroll = useCallback(() => {
     clearTimers();
@@ -273,18 +447,23 @@ export default function FortuneGachaSection() {
     setTickerActive(false);
     setPhase("idle");
     setResult(null);
+    setIsCachedResult(false);
   }, [clearTimers]);
+
+  closeScrollRef.current = closeScroll;
+
+  const ActiveCategoryIcon = activeCategory.icon;
 
   return (
     <section className="w-full" aria-labelledby="fortune-gacha-heading">
-      <FeatureCard className="!border-amber-100/80 !bg-[#faf6f0]/95 !px-4 !py-5 text-left shadow-lg shadow-amber-900/10 sm:!px-6 sm:!py-7">
+      <FeatureCard className="!px-4 !py-5 text-left sm:!px-6 sm:!py-7">
         <h2
           id="fortune-gacha-heading"
-          className="font-display text-center text-xl font-bold text-[#5c1a1a] sm:text-2xl"
+          className="font-display text-center text-xl font-bold text-aira-navy sm:text-2xl"
         >
           Kotak Ramalan Keberuntungan
         </h2>
-        <p className="mt-1.5 text-center text-sm leading-relaxed text-stone-600">
+        <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
           Pilih kategori, kocok kotaknya, dan ambil ramalan harianmu
         </p>
 
@@ -306,8 +485,8 @@ export default function FortuneGachaSection() {
                 onClick={() => setCategoryId(cat.id)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
                   active
-                    ? "border-[#7f1d1d]/30 bg-[#7f1d1d] text-[#faf6f0] shadow-md shadow-[#7f1d1d]/20"
-                    : "border-amber-200/80 bg-white/70 text-stone-700 hover:border-amber-300 hover:bg-white"
+                    ? "border-sky-300/50 bg-gradient-to-r from-sky-500 to-aira-navy text-white shadow-md shadow-sky-200/40"
+                    : "border-sky-200/80 bg-white/70 text-slate-600 hover:border-sky-300 hover:bg-white/90"
                 } ${isAnimating ? "pointer-events-none opacity-60" : ""}`}
               >
                 <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
@@ -318,7 +497,11 @@ export default function FortuneGachaSection() {
         </div>
 
         <div className="relative mt-8 flex flex-col items-center">
-          <GachaBox phase={phase} showStick={showStick} />
+          <GachaBox
+            phase={phase}
+            showStick={showStick}
+            CategoryIcon={ActiveCategoryIcon}
+          />
 
           <motion.button
             type="button"
@@ -330,12 +513,17 @@ export default function FortuneGachaSection() {
                 : { scale: 1 }
             }
             transition={{ type: "spring", stiffness: 520, damping: 14 }}
-            className="mt-8 rounded-full bg-gradient-to-b from-[#9b2c2c] to-[#7f1d1d] px-7 py-3.5 font-display text-sm font-bold tracking-wide text-[#faf6f0] shadow-lg shadow-[#7f1d1d]/30 ring-1 ring-[#5c1a1a]/20 transition hover:from-[#a83232] hover:to-[#8b2222] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7f1d1d]/50 focus-visible:ring-offset-2 sm:px-9 sm:text-base"
+            className="mt-8 rounded-full bg-gradient-to-r from-sky-500 to-aira-navy px-7 py-3.5 font-display text-sm font-bold tracking-wide text-white shadow-lg shadow-sky-200/40 ring-1 ring-sky-300/30 transition hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-aira-snow sm:px-9 sm:text-base"
           >
             {isAnimating ? "Mengocok kotak..." : "Ambil Ramalan Hari Ini"}
           </motion.button>
         </div>
       </FeatureCard>
+
+      <FortuneLuckSparks
+        tier={result?.tier}
+        active={showScroll && tickerActive}
+      />
 
       <AnimatePresence>
         {showScroll && result && (
@@ -344,40 +532,46 @@ export default function FortuneGachaSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+            transition={{ duration: 0.28 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center overscroll-none p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="fortune-result-title"
+            onClick={closeScroll}
           >
-            <button
-              type="button"
-              aria-label="Tutup ramalan"
-              className="absolute inset-0 bg-stone-900/55 backdrop-blur-[2px]"
-              onClick={closeScroll}
+            <motion.div
+              aria-hidden
+              className="absolute inset-0 bg-aira-navy/65 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             />
             <motion.div
-              initial={{ y: 24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 16, opacity: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
+              initial={{ y: 28, opacity: 0, scale: 0.96 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 20, opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
               className="relative z-10 w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
             >
               <h3 id="fortune-result-title" className="sr-only">
                 Hasil ramalan {activeCategory.label}
               </h3>
               <FortuneScroll
                 categoryLabel={activeCategory.label}
+                CategoryIcon={ActiveCategoryIcon}
                 tier={result.tier}
                 percent={result.percent}
                 text={result.text}
                 tickerActive={tickerActive}
+                fromCache={isCachedResult}
               />
               <button
                 type="button"
                 onClick={closeScroll}
-                className="mx-auto mt-5 flex rounded-full border border-white/30 bg-white/90 px-5 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-white"
+                className="mx-auto mt-5 flex items-center gap-2 rounded-full border border-sky-200/60 bg-white/95 px-5 py-2.5 text-sm font-semibold text-aira-navy shadow-md shadow-sky-200/25 transition hover:bg-white"
               >
+                <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                 Tutup
               </button>
             </motion.div>
