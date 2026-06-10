@@ -256,7 +256,7 @@ function FortuneScroll({
             variants={SCROLL_ITEM}
             className="mt-5 text-center font-mono text-[0.62rem] uppercase tracking-widest text-zinc-400"
           >
-            Ramalan hari ini — reset lagi besok
+            Today's luck
           </motion.p>
         ) : null}
       </motion.div>
