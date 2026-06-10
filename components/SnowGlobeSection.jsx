@@ -75,7 +75,7 @@ function floorYAt(x) {
   const rimY =
     GLOBE_CENTER.y +
     Math.sqrt(Math.max(0, GLOBE_RADIUS * GLOBE_RADIUS - dx * dx));
-  const snowLift = 17;
+  const snowLift = 10;
   const t = 1 - Math.min(1, Math.abs(dx) / (GLOBE_RADIUS * 0.88));
   return rimY - snowLift * t;
 }
@@ -96,7 +96,9 @@ function settledParticles(list, excludeId) {
 }
 
 function overlapsAny(x, y, size, others, excludeId) {
+  const reach = minSeparation(size) * 2.5;
   for (const p of settledParticles(others, excludeId)) {
+    if (Math.abs(p.x - x) > reach || Math.abs(p.y - y) > reach) continue;
     const minDist = (minSeparation(size) + minSeparation(p.size)) / 2;
     if (Math.hypot(p.x - x, p.y - y) < minDist) return true;
   }
@@ -143,54 +145,26 @@ function findRestPosition(settledList, excludeId, size = 9) {
   );
 }
 
-function separateSettledParticles(list) {
-  const next = list.map((p) => ({ ...p }));
-  let moved = false;
+function nudgeFromNeighbors(x, y, size, others, excludeId) {
+  let nx = x;
+  let ny = y;
+  const reach = minSeparation(size) * 2.5;
 
-  for (let iter = 0; iter < 4; iter += 1) {
-    for (let i = 0; i < next.length; i += 1) {
-      const p = next[i];
-      if (!p.settled || p.fading) continue;
-
-      let { x, y } = p;
-      for (let j = 0; j < next.length; j += 1) {
-        if (i === j) continue;
-        const o = next[j];
-        if (!o.settled || o.fading) continue;
-
-        const dx = x - o.x;
-        const dy = y - o.y;
-        const dist = Math.hypot(dx, dy) || 0.01;
-        const minDist = (minSeparation(p.size) + minSeparation(o.size)) / 2;
-        if (dist < minDist) {
-          const push = ((minDist - dist) / dist) * 0.52;
-          x += dx * push;
-          y += dy * push;
-          moved = true;
-        }
-      }
-
-      const floor = floorYAt(x);
-      if (y > floor) y = floor;
-      const clamped = clampXInGlobeAtY(x, y);
-      next[i] = { ...p, x: clamped.x, y: clamped.y, restX: clamped.x, restY: clamped.y };
+  for (const o of settledParticles(others, excludeId)) {
+    if (Math.abs(o.x - nx) > reach || Math.abs(o.y - ny) > reach) continue;
+    const dx = nx - o.x;
+    const dy = ny - o.y;
+    const dist = Math.hypot(dx, dy) || 0.01;
+    const minDist = (minSeparation(size) + minSeparation(o.size)) / 2;
+    if (dist < minDist) {
+      nx += (dx / dist) * (minDist - dist);
+      ny += (dy / dist) * (minDist - dist);
     }
   }
 
-  return { list: next, moved };
-}
-
-function hasSettledOverlap(list) {
-  for (let i = 0; i < list.length; i += 1) {
-    for (let j = i + 1; j < list.length; j += 1) {
-      const a = list[i];
-      const b = list[j];
-      if (!a.settled || !b.settled || a.fading || b.fading) continue;
-      const minDist = (minSeparation(a.size) + minSeparation(b.size)) / 2;
-      if (Math.hypot(a.x - b.x, a.y - b.y) < minDist * 0.92) return true;
-    }
-  }
-  return false;
+  const floor = floorYAt(nx);
+  if (ny > floor) ny = floor;
+  return clampXInGlobeAtY(nx, ny);
 }
 
 function spawnFromTop(xHint) {
@@ -222,7 +196,7 @@ function createParticle(type, xHint, id, velocity) {
     y: spawn.y,
     vx: velocity?.vx ?? (Math.random() - 0.5) * 0.012,
     vy: velocity?.vy ?? 0.01 + Math.random() * 0.008,
-    opacity: 0.75 + Math.random() * 0.2,
+    opacity: 0.42 + Math.random() * 0.18,
     fading: false,
     settled: false,
     size: 7 + Math.random() * 4,
@@ -233,16 +207,12 @@ function createParticle(type, xHint, id, velocity) {
 }
 
 function needsPhysics(list) {
-  return (
-    list.some(
-      (p) =>
-        p.fading ||
-        !p.settled ||
-        Math.abs(p.vx) > 0.002 ||
-        Math.abs(p.vy) > 0.002 ||
-        Math.abs(p.restX - p.x) > 0.05 ||
-        Math.abs(p.restY - p.y) > 0.05,
-    ) || hasSettledOverlap(list)
+  return list.some(
+    (p) =>
+      p.fading ||
+      !p.settled ||
+      Math.abs(p.vx) > 0.001 ||
+      Math.abs(p.vy) > 0.001,
   );
 }
 
@@ -357,14 +327,17 @@ export default function SnowGlobeSection() {
   const containerRef = useRef(null);
   const [isShaking, setIsShaking] = useState(false);
 
-  const syncParticleDom = useCallback((list) => {
-    for (const p of list) {
-      const el = particleElsRef.current.get(p.id);
-      if (!el) continue;
+  const syncParticleDom = useCallback((list, dirtyIds) => {
+    const byId = new Map(list.map((p) => [p.id, p]));
+    const ids = dirtyIds ?? list.map((p) => p.id);
+    for (const id of ids) {
+      const p = byId.get(id);
+      const el = particleElsRef.current.get(id);
+      if (!p || !el) continue;
+      el.style.transform = `translate3d(-50%,-50%,0) rotate(${p.rotate}deg)`;
       el.style.left = `${p.x}%`;
       el.style.top = `${p.y}%`;
       el.style.opacity = String(p.opacity);
-      el.style.transform = `translate(-50%, -50%) rotate(${p.rotate}deg)`;
     }
   }, []);
 
@@ -386,9 +359,15 @@ export default function SnowGlobeSection() {
 
       const prev = particlesRef.current;
       const next = [];
+      const dirtyIds = [];
       let countChanged = false;
 
       for (const p of prev) {
+        if (p.settled && !p.fading) {
+          next.push(p);
+          continue;
+        }
+
         let { x, y, vx, vy, opacity, fading, rotate, settled, restX, restY } =
           p;
 
@@ -428,22 +407,20 @@ export default function SnowGlobeSection() {
                 settled = true;
                 vx = 0;
                 vy = 0;
-                const rest = findRestPosition(next, p.id, p.size);
+                const raw = findRestPosition(next, p.id, p.size);
+                const rest = nudgeFromNeighbors(
+                  raw.x,
+                  raw.y,
+                  p.size,
+                  next,
+                  p.id,
+                );
                 restX = rest.x;
                 restY = rest.y;
                 x = rest.x;
                 y = rest.y;
               }
             }
-          } else if (
-            Math.abs(restX - x) > 0.04 ||
-            Math.abs(restY - y) > 0.04
-          ) {
-            x += (restX - x) * 0.22;
-            y += (restY - y) * 0.22;
-          } else {
-            x = restX;
-            y = restY;
           }
         }
 
@@ -463,22 +440,20 @@ export default function SnowGlobeSection() {
             restX,
             restY,
           });
+          dirtyIds.push(p.id);
         }
       }
 
       if (next.length !== prev.length) countChanged = true;
 
-      const separated = separateSettledParticles(next);
-      const finalList = separated.list;
-
-      particlesRef.current = finalList;
-      syncParticleDom(finalList);
+      particlesRef.current = next;
+      syncParticleDom(next, countChanged ? undefined : dirtyIds);
 
       if (countChanged) {
-        setParticles([...finalList]);
+        setParticles([...next]);
       }
 
-      if (!needsPhysics(finalList)) {
+      if (!needsPhysics(next)) {
         physicsActiveRef.current = false;
         rafRef.current = null;
         return;
@@ -609,7 +584,7 @@ export default function SnowGlobeSection() {
             0.08 -
             Math.random() * 0.06,
           fading: false,
-          opacity: Math.min(0.95, p.opacity + 0.08),
+          opacity: Math.min(0.62, p.opacity + 0.06),
         };
       });
       particlesRef.current = next;
@@ -736,7 +711,11 @@ export default function SnowGlobeSection() {
                       />
                     ))}
 
-                    <div ref={particleLayerRef} className="absolute inset-0">
+                    <div
+                      ref={particleLayerRef}
+                      className="absolute inset-0 [contain:layout_paint]"
+                      style={{ transform: "translateZ(0)" }}
+                    >
                       {particles.map((particle) => (
                         <div
                           key={particle.id}
@@ -744,7 +723,7 @@ export default function SnowGlobeSection() {
                             if (el) particleElsRef.current.set(particle.id, el);
                             else particleElsRef.current.delete(particle.id);
                           }}
-                          className="pointer-events-none absolute will-change-[left,top,transform,opacity]"
+                          className="pointer-events-none absolute left-0 top-0 will-change-transform"
                           style={{
                             left: `${particle.x}%`,
                             top: `${particle.y}%`,
