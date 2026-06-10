@@ -10,39 +10,60 @@ import {
 } from "@/lib/guessSounds";
 import { resolveFortuneForVisitor } from "@/lib/fortunePersistence";
 import { getVisitorId } from "@/lib/visitorId";
-import { AnimatePresence, motion } from "framer-motion";
-import { Box, ScrollText, Sparkles, X } from "lucide-react";
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
+import { Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const SHAKE_MS = 1500;
 const STICK_MS = 450;
-const TICKER_MS = 500;
+const PREMIUM_EASE = [0.16, 1, 0.3, 1];
+const SPRING_SNAPPY = { type: "spring", stiffness: 420, damping: 30, mass: 0.82 };
+const SCROLL_STAGGER = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.055, delayChildren: 0.14 },
+  },
+};
+const SCROLL_ITEM = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { ...SPRING_SNAPPY },
+  },
+};
 
-const OCTAGON_CLIP =
-  "polygon(28% 0%, 72% 0%, 100% 28%, 100% 72%, 72% 100%, 28% 100%, 0% 72%, 0% 28%)";
+function LuckScoreTicker({ target, active, className }) {
+  const motionVal = useMotionValue(0);
+  const display = useTransform(motionVal, (v) => `${Math.round(v)}%`);
 
-function runLuckTicker(target, duration, onUpdate, signal) {
-  const start = performance.now();
-
-  const frame = (now) => {
-    if (signal?.aborted) return;
-    const elapsed = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-
-    if (progress < 1) {
-      const ceiling = Math.max(
-        target,
-        Math.floor(target * progress + Math.random() * 35),
-      );
-      onUpdate(Math.min(99, Math.max(0, ceiling)));
-      requestAnimationFrame(frame);
-    } else {
-      onUpdate(target);
+  useEffect(() => {
+    if (!active) {
+      motionVal.set(0);
+      return undefined;
     }
-  };
+    const controls = animate(motionVal, target, {
+      type: "spring",
+      stiffness: 200,
+      damping: 26,
+      mass: 0.65,
+      duration: 0.5,
+    });
+    return () => controls.stop();
+  }, [active, motionVal, target]);
 
-  requestAnimationFrame(frame);
+  return (
+    <motion.span className={`inline-block min-w-[3.5ch] tabular-nums ${className}`}>
+      {display}
+    </motion.span>
+  );
 }
 
 function makeLuckSparkParticles(heavy = false) {
@@ -106,7 +127,7 @@ function FortuneLuckSparks({ tier, active }) {
 
   return createPortal(
     <div
-      className="pointer-events-none fixed inset-0 z-[205] overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[238] overflow-hidden"
       aria-hidden
     >
       {bursts.flatMap((b) =>
@@ -153,6 +174,7 @@ function FortuneLuckSparks({ tier, active }) {
 function FortuneScroll({
   categoryLabel,
   CategoryIcon,
+  categoryIconClass,
   tier,
   percent,
   text,
@@ -160,180 +182,304 @@ function FortuneScroll({
   fromCache,
 }) {
   const TierIcon = tier.icon;
-  const [displayPercent, setDisplayPercent] = useState(0);
-  const tickerRef = useRef(null);
-
-  useEffect(() => {
-    if (!tickerActive) {
-      setDisplayPercent(0);
-      return;
-    }
-
-    tickerRef.current?.abort();
-    const controller = new AbortController();
-    tickerRef.current = controller;
-
-    runLuckTicker(
-      percent,
-      TICKER_MS,
-      setDisplayPercent,
-      controller.signal,
-    );
-
-    return () => controller.abort();
-  }, [tickerActive, percent]);
 
   return (
-    <motion.div
-      initial={{ scaleY: 0, opacity: 0 }}
-      animate={{ scaleY: 1, opacity: 1 }}
-      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-      style={{ transformOrigin: "top center" }}
-      className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl shadow-sky-200/40 ring-1 ring-white/60"
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(147,197,253,0.04)_3px,rgba(147,197,253,0.04)_4px)]" />
-      <div className="relative border border-sky-100/90 bg-gradient-to-b from-white via-aira-iceLight to-aira-snow px-5 py-6 backdrop-blur-sm sm:px-7 sm:py-8">
-        <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-sky-100/80 ring-1 ring-sky-200/70">
+    <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/80 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.18)] ring-1 ring-white/80 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.65),transparent_55%)]" />
+      <motion.div
+        className="relative px-6 py-7 sm:px-8 sm:py-9"
+        variants={SCROLL_STAGGER}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div
+          variants={SCROLL_ITEM}
+          className="mx-auto mb-5 flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200/80 bg-zinc-50/90"
+        >
           <CategoryIcon
-            className="h-5 w-5 text-aira-navy"
-            strokeWidth={2}
+            className={`h-4 w-4 ${categoryIconClass}`}
+            fill="currentColor"
+            strokeWidth={0}
             aria-hidden
           />
-        </div>
-        <p className="font-display text-center text-lg font-bold tracking-wide text-aira-navy sm:text-xl">
+        </motion.div>
+
+        <motion.p
+          variants={SCROLL_ITEM}
+          className="text-center font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-zinc-500"
+        >
           {categoryLabel}
-        </p>
-        <div className="mt-4 flex justify-center">
+        </motion.p>
+
+        <motion.div variants={SCROLL_ITEM} className="mt-4 flex justify-center">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 sm:text-sm ${tier.badgeClass}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[0.65rem] font-medium uppercase tracking-wider ring-1 ${tier.badgeClass}`}
           >
-            <TierIcon className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+            <TierIcon
+              className="h-3 w-3"
+              fill="currentColor"
+              strokeWidth={0}
+              aria-hidden
+            />
             {tier.label}
           </span>
-        </div>
-        <p className="mt-5 text-center font-mono text-2xl font-semibold tabular-nums tracking-tight text-aira-navy sm:text-3xl">
-          Tingkat Hoki:{" "}
-          <motion.span
-            key={displayPercent}
-            className={`inline-block min-w-[3ch] ${tier.scoreClass}`}
-          >
-            {displayPercent}%
-          </motion.span>
-        </p>
-        <div className="mx-auto mt-5 h-px w-full max-w-[12rem] bg-gradient-to-r from-transparent via-sky-300/50 to-transparent" />
-        <p className="mt-5 text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+        </motion.div>
+
+        <motion.p
+          variants={SCROLL_ITEM}
+          className="mt-6 text-center font-mono text-xs uppercase tracking-[0.18em] text-zinc-400"
+        >
+          Tingkat Hoki
+        </motion.p>
+        <motion.div variants={SCROLL_ITEM} className="mt-1 text-center">
+          <LuckScoreTicker
+            target={percent}
+            active={tickerActive}
+            className={`font-mono text-4xl font-semibold tracking-tight sm:text-5xl ${tier.scoreClass}`}
+          />
+        </motion.div>
+
+        <motion.div
+          variants={SCROLL_ITEM}
+          className="mx-auto mt-6 h-px w-full max-w-[10rem] bg-gradient-to-r from-transparent via-zinc-300/60 to-transparent"
+        />
+
+        <motion.p
+          variants={SCROLL_ITEM}
+          className="mt-6 text-center text-sm leading-relaxed text-zinc-600 sm:text-[0.95rem]"
+        >
           {text}
-        </p>
-        {fromCache && (
-          <p className="mt-5 text-center text-xs text-slate-400">
-            Ramalan harianmu untuk kategori ini
-          </p>
-        )}
-        <div className="mx-auto mt-6 h-1 w-12 rounded-full bg-sky-200/80" />
-      </div>
-      <div className="h-2 bg-gradient-to-b from-aira-frost to-aira-ice" />
-    </motion.div>
+        </motion.p>
+
+        {fromCache ? (
+          <motion.p
+            variants={SCROLL_ITEM}
+            className="mt-5 text-center font-mono text-[0.62rem] uppercase tracking-widest text-zinc-400"
+          >
+            Ramalan harian
+          </motion.p>
+        ) : null}
+      </motion.div>
+    </div>
   );
 }
 
-function GachaBox({ phase, showStick, CategoryIcon }) {
-  const isShaking = phase === "shaking";
+const TUBE_SEGMENTS = ["22%", "44%", "66%"];
+
+function BambooStick({
+  category,
+  selected,
+  dimmed,
+  disabled,
+  isShaking,
+  isPopping,
+  onSelect,
+}) {
+  const Icon = category.icon;
 
   return (
-    <div className="relative mx-auto h-48 w-40 sm:h-52 sm:w-44">
+    <motion.button
+      type="button"
+      disabled={disabled}
+      onClick={() => onSelect(category.id)}
+      aria-label={`Pilih ramalan ${category.label}`}
+      aria-pressed={selected}
+      className="group relative shrink-0 cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/50 focus-visible:ring-offset-2 disabled:cursor-wait"
+      animate={{
+        opacity: dimmed ? 0.38 : 1,
+        scale: dimmed ? 0.96 : 1,
+        rotate: isShaking
+          ? selected
+            ? [0, -3, 4, -4, 3, -2, 0]
+            : [0, -1, 1, -1, 0]
+          : 0,
+        y: isShaking && selected ? [0, -1, 1, -2, 0] : 0,
+      }}
+      transition={
+        isShaking
+          ? { duration: SHAKE_MS / 1000, ease: PREMIUM_EASE }
+          : { ...SPRING_SNAPPY }
+      }
+      whileTap={disabled ? {} : { scale: 0.97 }}
+    >
       <motion.div
         animate={
-          isShaking
-            ? {
-                rotate: [0, -4, 5, -6, 4, -5, 3, -2, 0],
-                x: [0, -3, 4, -5, 3, -4, 2, 0],
-              }
-            : { rotate: 0, x: 0 }
+          isPopping && selected
+            ? { y: -68, scale: 1.04 }
+            : { y: selected && !isPopping ? -4 : 0, scale: 1 }
         }
         transition={
-          isShaking
-            ? { duration: SHAKE_MS / 1000, ease: "easeInOut" }
-            : { duration: 0.2 }
+          isPopping
+            ? { duration: STICK_MS / 1000, ease: PREMIUM_EASE }
+            : { ...SPRING_SNAPPY }
         }
-        className="relative h-full w-full"
+        className={`relative h-[8.75rem] w-[2.15rem] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] sm:h-[10.25rem] sm:w-[2.5rem] ${
+          selected ? "z-10" : "z-0 group-hover:-translate-y-1"
+        } ${category.hoverGlow}`}
       >
         <div
-          className="absolute inset-x-2 bottom-2 top-6 shadow-[0_18px_40px_-12px_rgba(56,189,248,0.28),inset_0_2px_0_rgba(255,255,255,0.75),inset_0_-6px_12px_rgba(147,197,253,0.15)]"
-          style={{
-            clipPath: OCTAGON_CLIP,
-            background:
-              "linear-gradient(145deg, #F4FAFF 0%, #EAF3FB 30%, #C5DDF0 65%, #B8D4EB 100%)",
-          }}
+          className={`absolute inset-0 overflow-hidden rounded-[1.35rem] bg-gradient-to-b from-zinc-100 via-zinc-50 to-zinc-200/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-12px_20px_rgba(0,0,0,0.04),0_10px_32px_-12px_rgba(0,0,0,0.14)] ring-1 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            selected
+              ? `${category.selectedRing} ring-2 ring-offset-2 ring-offset-white`
+              : "ring-zinc-200/70 group-hover:ring-zinc-300/80"
+          }`}
         >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-50"
-            style={{
-              background:
-                "repeating-linear-gradient(92deg, transparent, transparent 8px, rgba(255,255,255,0.35) 8px, rgba(255,255,255,0.35) 9px)",
-            }}
-          />
-          <div className="absolute inset-x-[18%] top-[6%] h-[10%] rounded-full bg-gradient-to-b from-aira-navy/35 to-aira-navy/55 shadow-inner" />
-          <div className="absolute inset-x-[22%] top-[14%] flex justify-center gap-2 opacity-40">
-            {[0, 1, 2].map((i) => (
-              <ScrollText
-                key={i}
-                className="h-4 w-4 text-sky-400/70"
-                strokeWidth={1.75}
-                style={{ transform: `rotate(${i * 6 - 6}deg)` }}
-                aria-hidden
-              />
-            ))}
-          </div>
-          <div className="absolute inset-x-0 bottom-[16%] flex flex-col items-center gap-1">
-            <Box
-              className="h-5 w-5 text-sky-500/50 sm:h-6 sm:w-6"
-              strokeWidth={1.75}
-              aria-hidden
+          <div className="pointer-events-none absolute inset-x-3 top-2 h-4 rounded-full bg-gradient-to-b from-white/80 to-transparent" />
+          {TUBE_SEGMENTS.map((top) => (
+            <div
+              key={top}
+              className="pointer-events-none absolute inset-x-2 h-px bg-zinc-300/35"
+              style={{ top }}
             />
-            <CategoryIcon
-              className="h-7 w-7 text-aira-navy/60 sm:h-8 sm:w-8"
-              strokeWidth={1.75}
-              aria-hidden
-            />
-          </div>
-        </div>
-
-        <div
-          className="absolute inset-x-3 top-0 h-8 shadow-md shadow-sky-200/40"
-          style={{
-            clipPath: OCTAGON_CLIP,
-            background:
-              "linear-gradient(180deg, #ffffff 0%, #EAF3FB 55%, #C5DDF0 100%)",
-          }}
-        />
-
-        <AnimatePresence>
-          {showStick && (
-            <motion.div
-              key="stick"
-              initial={{ y: 24, opacity: 0, scaleY: 0.2 }}
-              animate={{ y: -72, opacity: 1, scaleY: 1 }}
-              exit={{ y: 24, opacity: 0 }}
-              transition={{ duration: STICK_MS / 1000, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute left-1/2 top-[8%] z-10 -translate-x-1/2"
+          ))}
+          <div className="absolute inset-x-0 top-[26%] bottom-[24%] flex items-center justify-center">
+            <span
+              className="font-mono text-[0.58rem] font-medium uppercase tracking-[0.2em] text-zinc-500 sm:text-[0.62rem]"
+              style={{
+                writingMode: "vertical-rl",
+                transform: "rotate(180deg)",
+              }}
             >
-              <div className="flex flex-col items-center">
-                <div className="h-16 w-2 rounded-full bg-gradient-to-r from-white via-aira-iceLight to-aira-ice shadow-sm ring-1 ring-sky-200/50 sm:h-20" />
-                <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-md bg-white/95 shadow ring-1 ring-sky-200/60">
-                  <ScrollText
-                    className="h-4 w-4 text-aira-navy/75"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {category.label}
+            </span>
+          </div>
+          <div className="absolute inset-x-0 bottom-3 flex justify-center">
+            <Icon
+              className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${category.iconClass}`}
+              fill="currentColor"
+              strokeWidth={0}
+              aria-hidden
+            />
+          </div>
+          {selected ? (
+            <div
+              className={`pointer-events-none absolute inset-x-2 bottom-0 h-8 bg-gradient-to-t from-current/8 to-transparent ${category.accentClass}`}
+              aria-hidden
+            />
+          ) : null}
+        </div>
       </motion.div>
+    </motion.button>
+  );
+}
 
-      <div className="absolute -bottom-1 left-1/2 h-3 w-3/4 -translate-x-1/2 rounded-full bg-sky-300/25 blur-md" />
+function BambooFortuneSet({
+  categories,
+  selectedId,
+  phase,
+  showStick,
+  disabled,
+  onSelect,
+}) {
+  const isShaking = phase === "shaking";
+  const isPopping = showStick && (phase === "stick" || phase === "revealing");
+  const isBusy = isShaking || isPopping;
+
+  return (
+    <div className="relative mx-auto w-full max-w-lg px-1">
+      <div
+        className="pointer-events-none absolute inset-x-[8%] bottom-0 h-2 rounded-full bg-zinc-200/70 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)]"
+        aria-hidden
+      />
+      <div
+        className="relative flex items-end justify-center gap-1.5 overflow-x-auto pb-6 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-2.5 [&::-webkit-scrollbar]:hidden"
+        role="listbox"
+        aria-label="Pilih kategori ramalan"
+      >
+        {categories.map((cat) => (
+          <BambooStick
+            key={cat.id}
+            category={cat}
+            selected={cat.id === selectedId}
+            dimmed={isBusy && cat.id !== selectedId}
+            disabled={disabled}
+            isShaking={isShaking}
+            isPopping={isPopping}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
     </div>
+  );
+}
+
+function FortuneResultOverlay({ open, runId, onClose, children }) {
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyWidth = body.style.width;
+
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      body.style.overflow = prevBodyOverflow;
+      html.style.overflow = prevHtmlOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.width = prevBodyWidth;
+      window.scrollTo(0, scrollY);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+
+  if (!portalReady || typeof document === "undefined") return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          key={`fortune-overlay-${runId}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22, ease: PREMIUM_EASE }}
+          className="fixed inset-0 z-[240] flex touch-manipulation items-center justify-center overscroll-none p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            aria-label="Tutup ramalan"
+            className="absolute inset-0 z-0 cursor-pointer border-0 bg-black/40 backdrop-blur-md"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.94 }}
+            transition={SPRING_SNAPPY}
+            className="relative z-10 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {children}
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -350,7 +496,6 @@ export default function FortuneGachaSection() {
   const runIdRef = useRef(0);
 
   const timersRef = useRef([]);
-  const closeScrollRef = useRef(() => {});
 
   const clearTimers = useCallback(() => {
     for (const id of timersRef.current) {
@@ -366,26 +511,6 @@ export default function FortuneGachaSection() {
   }, []);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
-
-  useEffect(() => {
-    if (!showScroll) return undefined;
-
-    const prevBody = document.body.style.overflow;
-    const prevHtml = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") closeScrollRef.current();
-    };
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = prevBody;
-      document.documentElement.style.overflow = prevHtml;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [showScroll]);
 
   const activeCategory =
     FORTUNE_CATEGORIES.find((c) => c.id === categoryId) ??
@@ -450,8 +575,6 @@ export default function FortuneGachaSection() {
     setIsCachedResult(false);
   }, [clearTimers]);
 
-  closeScrollRef.current = closeScroll;
-
   const ActiveCategoryIcon = activeCategory.icon;
 
   return (
@@ -461,46 +584,20 @@ export default function FortuneGachaSection() {
           id="fortune-gacha-heading"
           className="font-display text-center text-xl font-bold text-aira-navy sm:text-2xl"
         >
-          Kotak Ramalan Keberuntungan
+          Bambu Ramalan Keberuntungan
         </h2>
         <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
-          Pilih kategori, kocok kotaknya, dan ambil ramalan harianmu
+          Pilih bambu ramalanmu, lalu kocok untuk lihat hoki hari ini
         </p>
 
-        <div
-          className="mt-6 -mx-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible [&::-webkit-scrollbar]:hidden"
-          role="tablist"
-          aria-label="Kategori ramalan"
-        >
-          {FORTUNE_CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            const active = cat.id === categoryId;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                disabled={isAnimating}
-                onClick={() => setCategoryId(cat.id)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
-                  active
-                    ? "border-sky-300/50 bg-gradient-to-r from-sky-500 to-aira-navy text-white shadow-md shadow-sky-200/40"
-                    : "border-sky-200/80 bg-white/70 text-slate-600 hover:border-sky-300 hover:bg-white/90"
-                } ${isAnimating ? "pointer-events-none opacity-60" : ""}`}
-              >
-                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
-                {cat.label}
-              </button>
-            );
-          })}
-        </div>
-
         <div className="relative mt-8 flex flex-col items-center">
-          <GachaBox
+          <BambooFortuneSet
+            categories={FORTUNE_CATEGORIES}
+            selectedId={categoryId}
             phase={phase}
             showStick={showStick}
-            CategoryIcon={ActiveCategoryIcon}
+            disabled={isAnimating}
+            onSelect={setCategoryId}
           />
 
           <motion.button
@@ -513,9 +610,9 @@ export default function FortuneGachaSection() {
                 : { scale: 1 }
             }
             transition={{ type: "spring", stiffness: 520, damping: 14 }}
-            className="mt-8 rounded-full bg-gradient-to-r from-sky-500 to-aira-navy px-7 py-3.5 font-display text-sm font-bold tracking-wide text-white shadow-lg shadow-sky-200/40 ring-1 ring-sky-300/30 transition hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-aira-snow sm:px-9 sm:text-base"
+            className="mt-8 rounded-full border border-zinc-900/10 bg-zinc-900 px-7 py-3.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-zinc-50 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.35)] transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-zinc-800 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 sm:px-9"
           >
-            {isAnimating ? "Mengocok kotak..." : "Ambil Ramalan Hari Ini"}
+            {isAnimating ? "Mengocok bambu..." : "Ambil Ramalan Hari Ini"}
           </motion.button>
         </div>
       </FeatureCard>
@@ -525,59 +622,40 @@ export default function FortuneGachaSection() {
         active={showScroll && tickerActive}
       />
 
-      <AnimatePresence>
-        {showScroll && result && (
-          <motion.div
-            key={`overlay-${runId}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.28 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center overscroll-none p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="fortune-result-title"
-            onClick={closeScroll}
-          >
-            <motion.div
-              aria-hidden
-              className="absolute inset-0 bg-aira-navy/65 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+      <FortuneResultOverlay
+        open={showScroll && Boolean(result)}
+        runId={runId}
+        onClose={closeScroll}
+      >
+        <h3 id="fortune-result-title" className="sr-only">
+          Hasil ramalan {activeCategory.label}
+        </h3>
+        {result ? (
+          <>
+            <FortuneScroll
+              categoryLabel={activeCategory.label}
+              CategoryIcon={ActiveCategoryIcon}
+              categoryIconClass={activeCategory.iconClass}
+              tier={result.tier}
+              percent={result.percent}
+              text={result.text}
+              tickerActive={tickerActive}
+              fromCache={isCachedResult}
             />
-            <motion.div
-              initial={{ y: 28, opacity: 0, scale: 0.96 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 20, opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-10 w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeScroll();
+              }}
+              className="mx-auto mt-5 flex min-h-[44px] touch-manipulation items-center gap-2 rounded-full border border-zinc-200/80 bg-white/90 px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-zinc-700 shadow-sm backdrop-blur-sm transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-md active:scale-[0.98]"
             >
-              <h3 id="fortune-result-title" className="sr-only">
-                Hasil ramalan {activeCategory.label}
-              </h3>
-              <FortuneScroll
-                categoryLabel={activeCategory.label}
-                CategoryIcon={ActiveCategoryIcon}
-                tier={result.tier}
-                percent={result.percent}
-                text={result.text}
-                tickerActive={tickerActive}
-                fromCache={isCachedResult}
-              />
-              <button
-                type="button"
-                onClick={closeScroll}
-                className="mx-auto mt-5 flex items-center gap-2 rounded-full border border-sky-200/60 bg-white/95 px-5 py-2.5 text-sm font-semibold text-aira-navy shadow-md shadow-sky-200/25 transition hover:bg-white"
-              >
-                <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-                Tutup
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+              Tutup
+            </button>
+          </>
+        ) : null}
+      </FortuneResultOverlay>
     </section>
   );
 }
