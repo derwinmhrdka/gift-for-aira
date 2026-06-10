@@ -60,6 +60,52 @@ const GLASS = {
 
 const GLOBE_CENTER = { x: 50, y: 50 };
 const GLOBE_RADIUS = 46;
+const COUNTS_STORAGE_KEY = "aira-snow-globe-counts";
+
+function emptyCounts() {
+  return { love: 0, like: 0, snowflake: 0 };
+}
+
+function readStoredCounts() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(COUNTS_STORAGE_KEY);
+    if (!raw) return null;
+    return normalizeCounts(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredCounts(counts) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(counts));
+  } catch {
+    /* ignore */
+  }
+}
+
+function normalizeCounts(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    love: Math.max(0, Number(raw.love) || 0),
+    like: Math.max(0, Number(raw.like) || 0),
+    snowflake: Math.max(0, Number(raw.snowflake) || 0),
+  };
+}
+
+function mergeCounts(prev, next) {
+  return {
+    love: Math.max(prev.love, next.love),
+    like: Math.max(prev.like, next.like),
+    snowflake: Math.max(prev.snowflake, next.snowflake),
+  };
+}
+
+function countsTotal(counts) {
+  return counts.love + counts.like + counts.snowflake;
+}
 
 function formatCount(value) {
   const n = Number(value) || 0;
@@ -332,7 +378,9 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
 }
 
 export default function SnowGlobeSection() {
-  const [counts, setCounts] = useState({ love: 0, like: 0, snowflake: 0 });
+  const [counts, setCounts] = useState(
+    () => readStoredCounts() ?? emptyCounts(),
+  );
   const [particles, setParticles] = useState([]);
   const [buttonBounce, setButtonBounce] = useState(null);
   const [floatingIcons, setFloatingIcons] = useState([]);
@@ -487,20 +535,25 @@ export default function SnowGlobeSection() {
     rafRef.current = requestAnimationFrame(tick);
   }, [syncParticleDom]);
 
-  const applyCounts = useCallback((nextCounts, source) => {
-    if (!nextCounts) return;
+  const applyCounts = useCallback((nextCounts) => {
+    const next = normalizeCounts(nextCounts);
+    if (!next) return;
+
     setCounts((prev) => {
-      const next = {
-        love: Number(nextCounts.love) || 0,
-        like: Number(nextCounts.like) || 0,
-        snowflake: Number(nextCounts.snowflake) || 0,
-      };
-      if (source === "airtable") return next;
-      return {
-        love: Math.max(prev.love, next.love),
-        like: Math.max(prev.like, next.like),
-        snowflake: Math.max(prev.snowflake, next.snowflake),
-      };
+      const prevTotal = countsTotal(prev);
+      const nextTotal = countsTotal(next);
+
+      if (nextTotal === 0 && prevTotal > 0) return prev;
+
+      const merged = mergeCounts(prev, next);
+      if (
+        merged.love !== prev.love ||
+        merged.like !== prev.like ||
+        merged.snowflake !== prev.snowflake
+      ) {
+        writeStoredCounts(merged);
+      }
+      return merged;
     });
   }, []);
 
@@ -554,7 +607,7 @@ export default function SnowGlobeSection() {
         const res = await fetch(`/api/reactions${q}`, { cache: "no-store" });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
-        applyCounts(data.counts, data.source);
+        applyCounts(data.counts);
         if (includeEvents) {
           for (const ev of data.events ?? []) {
             spawnParticle(ev.type, ev.x, ev.y, ev.id);
@@ -577,7 +630,7 @@ export default function SnowGlobeSection() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
-        applyCounts(data.counts, data.source);
+        applyCounts(data.counts);
       } catch {
         /* ignore */
       }
@@ -656,7 +709,7 @@ export default function SnowGlobeSection() {
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          applyCounts(data.counts, data.source);
+          applyCounts(data.counts);
           if (data.event?.id) seenEventIdsRef.current.add(data.event.id);
         }
       } catch {
@@ -666,16 +719,25 @@ export default function SnowGlobeSection() {
     [applyCounts],
   );
 
+  const bumpLocalCount = useCallback((type) => {
+    setCounts((prev) => {
+      const merged = { ...prev, [type]: prev[type] + 1 };
+      writeStoredCounts(merged);
+      return merged;
+    });
+  }, []);
+
   const handleReaction = useCallback(
     (type, buttonEl) => {
       const spawn = spawnFromTop(40 + Math.random() * 20);
       spawnParticle(type, spawn.x, undefined);
+      bumpLocalCount(type);
       postReaction(type, spawn.x, spawn.y);
       setButtonBounce(type);
       window.setTimeout(() => setButtonBounce(null), 500);
       addFloatingIcon(type, buttonEl);
     },
-    [addFloatingIcon, postReaction, spawnParticle],
+    [addFloatingIcon, bumpLocalCount, postReaction, spawnParticle],
   );
 
   return (
@@ -688,7 +750,7 @@ export default function SnowGlobeSection() {
           Kirim dukunganmu!
         </h2>
         <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
-          Klik ikon — hati, like, atau salju melayang di bola kacanya
+          Klik ikon love, like, atau salju melayang di bola kacanya
         </p>
 
         <div

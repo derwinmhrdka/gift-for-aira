@@ -1,3 +1,4 @@
+import FortuneGachaSection from "@/components/FortuneGachaSection";
 import SnowGlobeSection from "@/components/SnowGlobeSection";
 import BankTransferSection from "@/components/BankTransferSection";
 import BestWishesSection from "@/components/BestWishesSection";
@@ -63,7 +64,7 @@ export default async function Home() {
                 </span>
               </h1>
             </div>
-            <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 sm:text-lg">
+            <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-600 sm:text-base">
               Hi onty ongkel, website ini untuk menyambut kehadiran {" "}
               <span className="text-sky-600">&quot;Little Mahardika&quot; 🧸</span>
               <br />Ucapan akan kami simpan dan sampaikan beberapa tahun mendatang
@@ -91,6 +92,21 @@ export default async function Home() {
         >
           <div className="mx-auto w-full max-w-xl overflow-visible">
             <SnowGlobeSection />
+          </div>
+        </SectionShell>
+
+        <SectionShell
+          className="mb-5 sm:mb-6"
+          background={
+            <SectionBackground
+              src="/bg_3.jpg"
+              gradient="soft"
+              objectPosition="object-[center_50%]"
+            />
+          }
+        >
+          <div className="mx-auto w-full max-w-xl">
+            <FortuneGachaSection />
           </div>
         </SectionShell>
 
