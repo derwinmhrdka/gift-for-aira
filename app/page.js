@@ -125,6 +125,24 @@ export default async function Home() {
           <BankTransferSection />
         </SectionShell>
 
+        <footer className="relative z-10 mt-10 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-4 pb-6 text-center text-[10px] leading-relaxed text-slate-400">
+          <span>Developer by Mahardiora</span>
+          <span aria-hidden className="text-slate-300">
+            ·
+          </span>
+          <span>
+            Powered by{" "}
+            <Link
+              href="https://teknodika.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-500 underline-offset-2 transition hover:text-sky-600 hover:underline"
+            >
+              Teknodika.com
+            </Link>
+          </span>
+        </footer>
+
       </div>
       </SparkBurstProvider>
     </div>

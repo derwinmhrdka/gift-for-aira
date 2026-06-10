@@ -15,16 +15,15 @@ const IDLE_WAIT_MS = 5000;
 const IDLE_VISIBLE_MS = 2500;
 
 const BUBBLE_RADIUS = 14;
-const TAIL_HALF_WIDTH = 9;
-const TAIL_LENGTH = 12;
+const TAIL_LENGTH = 11;
+const TAIL_ATTACH_LEFT = 12;
+const TAIL_ATTACH_RIGHT = 24;
 
-function createSpeechBubblePath(width, height, tailCenterX) {
+function createSpeechBubblePath(width, height, tailTipX) {
   const w = width;
   const h = height;
   const r = BUBBLE_RADIUS;
-  const tcx = tailCenterX;
-  const left = tcx - TAIL_HALF_WIDTH;
-  const right = tcx + TAIL_HALF_WIDTH;
+  const tipX = tailTipX;
   const tipY = h + TAIL_LENGTH;
 
   return [
@@ -33,9 +32,9 @@ function createSpeechBubblePath(width, height, tailCenterX) {
     `Q ${w - 1} 1 ${w - 1} ${r}`,
     `L ${w - 1} ${h - r}`,
     `Q ${w - 1} ${h - 1} ${w - r} ${h - 1}`,
-    `L ${right} ${h - 1}`,
-    `Q ${tcx + 5} ${h + 4} ${tcx} ${tipY}`,
-    `Q ${tcx - 5} ${h + 4} ${left} ${h - 1}`,
+    `L ${TAIL_ATTACH_RIGHT} ${h - 1}`,
+    `C ${TAIL_ATTACH_RIGHT + 16} ${h + 1} ${tipX + 12} ${h + 6} ${tipX} ${tipY}`,
+    `C ${tipX - 2} ${h + 7} ${TAIL_ATTACH_LEFT - 2} ${h + 1} ${TAIL_ATTACH_LEFT} ${h - 1}`,
     `L ${r} ${h - 1}`,
     `Q 1 ${h - 1} 1 ${h - r}`,
     `L 1 ${r}`,
@@ -79,7 +78,7 @@ function SpeechBubble({
 
   return (
     <div
-      className={`absolute bottom-full left-0 z-[222] mb-1 w-max max-w-[min(14rem,calc(100vw-2rem))] ${className}`}
+      className={`absolute bottom-[calc(100%-10px)] left-0 z-[222] w-max max-w-[min(14rem,calc(100vw-2rem))] ${className}`}
     >
       <div
         className="relative"
@@ -103,17 +102,17 @@ function SpeechBubble({
           </svg>
         ) : null}
 
-        <div ref={contentRef} className="relative px-3.5 py-2">
+        <div ref={contentRef} className="relative px-3.5 py-2.5">
           {interactive ? (
             <button
               type="button"
               onClick={onAction}
-              className="pointer-events-auto text-left text-xs font-medium leading-snug text-slate-700 transition hover:text-sky-600 focus:outline-none focus-visible:underline"
+              className="pointer-events-auto text-left text-xs font-medium leading-relaxed text-slate-700 transition hover:text-sky-600 focus:outline-none focus-visible:underline"
             >
               {children}
             </button>
           ) : (
-            <p className="text-xs font-medium leading-snug text-slate-700">
+            <p className="text-xs font-medium leading-relaxed text-slate-700">
               {children}
             </p>
           )}
