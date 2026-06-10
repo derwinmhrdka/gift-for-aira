@@ -52,7 +52,7 @@ const POLL_MS = 2000;
 const GRAVITY = 0.006;
 const DRAG = 0.992;
 const MAX_PREPOPULATE = 30;
-const LAYER_HEIGHT = 3.5;
+const LAYER_HEIGHT = 2.6;
 
 /** Glass dome area within snow-globe.png (percent of image box) */
 const GLASS = {
@@ -63,7 +63,6 @@ const GLASS = {
 
 const GLOBE_CENTER = { x: 50, y: 50 };
 const GLOBE_RADIUS = 46;
-const GLOBE_FLOOR_Y = 72;
 
 function formatCount(value) {
   const n = Number(value) || 0;
@@ -75,7 +74,8 @@ function formatCount(value) {
 }
 
 function slotsInLayer(layer) {
-  return Math.min(1 + layer * 2, 9);
+  if (layer === 0) return 5;
+  return Math.min(7 + layer * 2, 13);
 }
 
 function floorYAt(x) {
@@ -83,21 +83,32 @@ function floorYAt(x) {
   const rimY =
     GLOBE_CENTER.y +
     Math.sqrt(Math.max(0, GLOBE_RADIUS * GLOBE_RADIUS - dx * dx));
-  const snowLift = 22;
-  const t = 1 - Math.min(1, Math.abs(dx) / (GLOBE_RADIUS * 0.9));
+  const snowLift = 17;
+  const t = 1 - Math.min(1, Math.abs(dx) / (GLOBE_RADIUS * 0.88));
   return rimY - snowLift * t;
 }
 
+function clampXInGlobeAtY(x, y) {
+  const dy = y - GLOBE_CENTER.y;
+  const maxDx = Math.sqrt(Math.max(0, GLOBE_RADIUS * GLOBE_RADIUS - dy * dy));
+  const clampedDx = Math.max(-maxDx, Math.min(maxDx, x - GLOBE_CENTER.x));
+  return { x: GLOBE_CENTER.x + clampedDx, y };
+}
+
 function slotXOffset(slot, slots, layer) {
+  const spread = 5 + layer * 2.2;
   if (slots === 1) return 0;
-  const spread = 3 + layer * 2.8;
-  if (slots === 3) return [0, -spread, spread][slot] ?? 0;
+  if (slots === 5) {
+    return [-spread, -spread / 2, 0, spread / 2, spread][slot] ?? 0;
+  }
   const t = slot / (slots - 1) - 0.5;
   return t * spread * 2;
 }
 
-function assignRestPosition(particles, excludeId) {
-  const n = particles.filter((p) => !p.fading && p.id !== excludeId).length;
+function assignRestPosition(settledParticles, excludeId) {
+  const n = settledParticles.filter(
+    (p) => p.settled && !p.fading && p.id !== excludeId,
+  ).length;
 
   let layer = 0;
   let used = 0;
@@ -108,9 +119,10 @@ function assignRestPosition(particles, excludeId) {
   const slot = n - used;
   const slots = slotsInLayer(layer);
   const restX = 50 + slotXOffset(slot, slots, layer);
-  const restY = GLOBE_FLOOR_Y - layer * LAYER_HEIGHT;
+  const floor = floorYAt(restX);
+  const restY = floor - layer * LAYER_HEIGHT;
 
-  return clampToGlobe(restX, restY);
+  return clampXInGlobeAtY(restX, restY);
 }
 
 function spawnFromTop(xHint) {
@@ -131,9 +143,9 @@ function clampToGlobe(x, y, radius = GLOBE_RADIUS) {
   };
 }
 
-function createParticle(type, xHint, id, existing = [], velocity) {
+function createParticle(type, xHint, id, velocity) {
   const spawn = spawnFromTop(xHint);
-  const rest = assignRestPosition(existing, id);
+  const floor = floorYAt(spawn.x);
 
   return {
     id,
@@ -147,8 +159,8 @@ function createParticle(type, xHint, id, existing = [], velocity) {
     settled: false,
     size: 7 + Math.random() * 4,
     rotate: Math.random() * 360,
-    restX: rest.x,
-    restY: rest.y,
+    restX: spawn.x,
+    restY: floor,
   };
 }
 
@@ -164,7 +176,10 @@ function prePopulate(counts, idRef) {
     const n = Math.round((counts[id] ?? 0) * scale);
     for (let i = 0; i < n; i += 1) {
       const pid = `pre-${++idRef.current}`;
-      const rest = assignRestPosition(result, pid);
+      const rest = assignRestPosition(
+        result.filter((p) => p.settled),
+        pid,
+      );
       result.push({
         id: pid,
         type: id,
@@ -334,7 +349,7 @@ export default function SnowGlobeSection() {
       const n = Math.max(1, next.length - FADE_START + 1);
       for (let i = 0; i < n && i < next.length; i += 1) next[i].fading = true;
     }
-    next.push(createParticle(type, x, key, next));
+    next.push(createParticle(type, x, key));
     particlesRef.current = next;
     setParticles([...next]);
   }, []); // setParticles only when count changes — positions updated in RAF
@@ -465,17 +480,22 @@ export default function SnowGlobeSection() {
                 settled = true;
                 vx = 0;
                 vy = 0;
-                const rest = assignRestPosition(next, p.id);
+                const rest = assignRestPosition(
+                  next.filter((pp) => pp.settled),
+                  p.id,
+                );
                 restX = rest.x;
                 restY = rest.y;
+                x = rest.x;
+                y = rest.y;
               }
             }
           } else if (
-            Math.abs(restX - x) > 0.06 ||
-            Math.abs(restY - y) > 0.06
+            Math.abs(restX - x) > 0.04 ||
+            Math.abs(restY - y) > 0.04
           ) {
-            x += (restX - x) * 0.14;
-            y += (restY - y) * 0.14;
+            x += (restX - x) * 0.22;
+            y += (restY - y) * 0.22;
           } else {
             x = restX;
             y = restY;
