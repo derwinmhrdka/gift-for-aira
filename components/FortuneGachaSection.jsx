@@ -626,7 +626,7 @@ export default function FortuneGachaSection() {
             transition={{ type: "spring", stiffness: 520, damping: 14 }}
             className="mt-8 rounded-full border border-zinc-900/10 bg-zinc-900 px-7 py-3.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-zinc-50 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.35)] transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-zinc-800 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 sm:px-9"
           >
-            {isAnimating ? "Mengocok bambu..." : "Ambil Ramalan Hari Ini"}
+            {isAnimating ? "Gacha..." : "Ambil Ramalan"}
           </motion.button>
         </div>
       </FeatureCard>
