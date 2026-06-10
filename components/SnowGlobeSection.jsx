@@ -49,10 +49,21 @@ const HOLD_INTERVAL_MS = 280;
 const MAX_PARTICLES = 52;
 const FADE_START = 38;
 const POLL_MS = 2000;
-const GRAVITY = 0.005;
-const DRAG = 0.986;
-const SETTLE_SPEED = 0.012;
+const GRAVITY = 0.0042;
+const DRAG = 0.988;
+const SETTLE_SPEED = 0.018;
 const MAX_PREPOPULATE = 30;
+
+/** Glass dome area within snow-globe.png (percent of image box) */
+const GLASS = {
+  left: "11%",
+  top: "3%",
+  width: "78%",
+};
+
+const GLOBE_CENTER = { x: 50, y: 50 };
+const GLOBE_RADIUS = 46;
+const GLOBE_FLOOR_Y = 72;
 
 function formatCount(value) {
   const n = Number(value) || 0;
@@ -70,10 +81,27 @@ function randomVelocity(scale = 0.06) {
   };
 }
 
+function clampToGlobe(x, y, radius = GLOBE_RADIUS) {
+  const dx = x - GLOBE_CENTER.x;
+  const dy = y - GLOBE_CENTER.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist <= radius) return { x, y };
+  const scale = radius / dist;
+  return {
+    x: GLOBE_CENTER.x + dx * scale,
+    y: GLOBE_CENTER.y + dy * scale,
+  };
+}
+
 function createParticle(type, x, y, id, velocity) {
-  const base = randomVelocity();
-  const spawnX = x ?? 22 + Math.random() * 56;
-  const spawnY = y ?? 18 + Math.random() * 50;
+  const base = randomVelocity(0.045);
+  const rawX = x ?? 24 + Math.random() * 52;
+  const rawY = y ?? 22 + Math.random() * 42;
+  const { x: spawnX, y: spawnY } = clampToGlobe(rawX, rawY);
+  const restY = GLOBE_FLOOR_Y - Math.random() * 10;
+  const restX = spawnX + (Math.random() - 0.5) * 8;
+  const clampedRest = clampToGlobe(restX, restY);
+
   return {
     id,
     type,
@@ -86,8 +114,8 @@ function createParticle(type, x, y, id, velocity) {
     settled: false,
     size: 7 + Math.random() * 4,
     rotate: Math.random() * 360,
-    restX: spawnX,
-    restY: 58 + Math.random() * 16,
+    restX: clampedRest.x,
+    restY: clampedRest.y,
   };
 }
 
@@ -102,17 +130,21 @@ function prePopulate(counts, idRef) {
   for (const { id } of REACTIONS) {
     const n = Math.round((counts[id] ?? 0) * scale);
     for (let i = 0; i < n; i += 1) {
-      const x = 16 + Math.random() * 68;
-      const restY = 55 + Math.random() * 18;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * GLOBE_RADIUS * 0.75;
+      const x = GLOBE_CENTER.x + Math.cos(angle) * dist;
+      const y = GLOBE_FLOOR_Y - Math.random() * 14;
+      const clamped = clampToGlobe(x, y);
       result.push({
-        ...createParticle(id, x, restY, `pre-${++idRef.current}`, {
+        ...createParticle(id, clamped.x, clamped.y, `pre-${++idRef.current}`, {
           vx: 0,
           vy: 0,
         }),
         settled: true,
         vx: 0,
         vy: 0,
-        y: restY,
+        x: clamped.x,
+        y: clamped.y,
       });
     }
   }
@@ -224,9 +256,22 @@ export default function SnowGlobeSection() {
   const lastPollRef = useRef(Date.now());
   const rafRef = useRef(null);
   const localIdRef = useRef(0);
-  const globeRef = useRef(null);
+  const glassRef = useRef(null);
+  const particleLayerRef = useRef(null);
+  const particleElsRef = useRef(new Map());
   const containerRef = useRef(null);
   const [isShaking, setIsShaking] = useState(false);
+
+  const syncParticleDom = useCallback((list) => {
+    for (const p of list) {
+      const el = particleElsRef.current.get(p.id);
+      if (!el) continue;
+      el.style.left = `${p.x}%`;
+      el.style.top = `${p.y}%`;
+      el.style.opacity = String(p.opacity);
+      el.style.transform = `translate(-50%, -50%) rotate(${p.rotate}deg)`;
+    }
+  }, []);
 
   const applyCounts = useCallback((nextCounts, source) => {
     if (!nextCounts) return;
@@ -258,7 +303,7 @@ export default function SnowGlobeSection() {
     next.push(createParticle(type, x, y, key));
     particlesRef.current = next;
     setParticles([...next]);
-  }, []);
+  }, []); // setParticles only when count changes — positions updated in RAF
 
   const addFloatingIcon = useCallback((type, buttonEl) => {
     const containerRect = containerRef.current?.getBoundingClientRect();
@@ -336,49 +381,69 @@ export default function SnowGlobeSection() {
   }, [applyCounts, syncFromServer]);
 
   useEffect(() => {
-    function tick() {
+    let lastTime = 0;
+
+    function tick(now) {
+      const dt = lastTime ? Math.min((now - lastTime) / 16.67, 2) : 1;
+      lastTime = now;
+
+      const prev = particlesRef.current;
       const next = [];
-      for (const p of particlesRef.current) {
+      let countChanged = false;
+
+      for (const p of prev) {
         let { x, y, vx, vy, opacity, fading, rotate, settled, restX, restY } =
           p;
 
         if (!fading) {
           if (!settled) {
-            vy += GRAVITY;
-            vx *= DRAG;
-            vy *= DRAG;
-            x += vx;
-            y += vy;
-            rotate += 0.1;
+            vy += GRAVITY * dt;
+            vx *= DRAG ** dt;
+            vy *= DRAG ** dt;
+            x += vx * dt;
+            y += vy * dt;
+            rotate += 0.06 * dt;
 
-            const dx = x - 50;
-            const dy = y - 50;
+            const dx = x - GLOBE_CENTER.x;
+            const dy = y - GLOBE_CENTER.y;
             const dist = Math.hypot(dx, dy);
-            const maxDist = 37;
 
-            if (dist > maxDist) {
+            if (dist > GLOBE_RADIUS) {
               const nx = dx / dist;
               const ny = dy / dist;
-              x = 50 + nx * maxDist;
-              y = 50 + ny * maxDist;
+              x = GLOBE_CENTER.x + nx * GLOBE_RADIUS;
+              y = GLOBE_CENTER.y + ny * GLOBE_RADIUS;
               const dot = vx * nx + vy * ny;
-              vx = (vx - 2 * dot * nx) * 0.5;
-              vy = (vy - 2 * dot * ny) * 0.5;
+              if (dot > 0) {
+                vx -= dot * nx * 0.85;
+                vy -= dot * ny * 0.85;
+              }
+              vx *= 0.9;
+              vy *= 0.9;
             }
 
-            if (Math.hypot(vx, vy) < SETTLE_SPEED && y >= restY - 4) {
+            const speed = Math.hypot(vx, vy);
+            if (speed < SETTLE_SPEED && y >= restY - 3) {
               settled = true;
               vx = 0;
               vy = 0;
+            } else if (speed < 0.003) {
+              vx = 0;
+              vy = 0;
             }
+          } else if (
+            Math.abs(restX - x) > 0.08 ||
+            Math.abs(restY - y) > 0.08
+          ) {
+            x += (restX - x) * 0.1;
+            y += (restY - y) * 0.1;
           } else {
-            x += (restX - x) * 0.04;
-            y += (restY - y) * 0.04;
-            rotate += 0.015;
+            x = restX;
+            y = restY;
           }
         }
 
-        if (fading) opacity -= 0.011;
+        if (fading) opacity -= 0.009 * dt;
 
         if (opacity > 0.03) {
           next.push({
@@ -397,8 +462,15 @@ export default function SnowGlobeSection() {
         }
       }
 
+      if (next.length !== prev.length) countChanged = true;
+
       particlesRef.current = next;
-      setParticles([...next]);
+      syncParticleDom(next);
+
+      if (countChanged) {
+        setParticles([...next]);
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     }
 
@@ -406,38 +478,55 @@ export default function SnowGlobeSection() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [syncParticleDom]);
 
-  const scatterParticles = useCallback((ox, oy) => {
-    const cur = particlesRef.current;
-    if (cur.length === 0) return;
-    const next = cur.map((p) => {
-      const dx = p.x - ox;
-      const dy = p.y - oy;
-      const dist = Math.hypot(dx, dy) || 1;
-      const force = 0.25 + Math.random() * 0.35;
-      return {
-        ...p,
-        settled: false,
-        vx: p.vx + (dx / dist) * force + (Math.random() - 0.5) * 0.12,
-        vy: p.vy + (dy / dist) * force + (Math.random() - 0.5) * 0.12 - 0.05,
-        fading: false,
-        opacity: Math.min(0.95, p.opacity + 0.1),
-      };
-    });
-    particlesRef.current = next;
-    setParticles([...next]);
-  }, []);
+  const scatterParticles = useCallback(
+    (ox, oy) => {
+      const cur = particlesRef.current;
+      if (cur.length === 0) return;
+      const next = cur.map((p) => {
+        const dx = p.x - ox;
+        const dy = p.y - oy;
+        const dist = Math.hypot(dx, dy) || 1;
+        const force = 0.12 + Math.random() * 0.18;
+        const clamped = clampToGlobe(p.x, p.y);
+        return {
+          ...p,
+          x: clamped.x,
+          y: clamped.y,
+          settled: false,
+          vx:
+            p.vx * 0.4 +
+            (dx / dist) * force +
+            (Math.random() - 0.5) * 0.06,
+          vy:
+            p.vy * 0.4 +
+            (dy / dist) * force +
+            (Math.random() - 0.5) * 0.06 -
+            0.03,
+          fading: false,
+          opacity: Math.min(0.95, p.opacity + 0.08),
+        };
+      });
+      particlesRef.current = next;
+      syncParticleDom(next);
+    },
+    [syncParticleDom],
+  );
+
+  useEffect(() => {
+    syncParticleDom(particlesRef.current);
+  }, [particles, syncParticleDom]);
 
   function handleGlobeClick(e) {
     e.stopPropagation();
-    const globe = globeRef.current;
-    if (!globe) return;
-    const rect = globe.getBoundingClientRect();
-    scatterParticles(
-      ((e.clientX - rect.left) / rect.width) * 100,
-      ((e.clientY - rect.top) / rect.height) * 100,
-    );
+    const glass = glassRef.current;
+    if (!glass) return;
+    const rect = glass.getBoundingClientRect();
+    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
+    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
+    const origin = clampToGlobe(rawX, rawY);
+    scatterParticles(origin.x, origin.y);
     setIsShaking(true);
     window.setTimeout(() => setIsShaking(false), 480);
   }
@@ -464,10 +553,14 @@ export default function SnowGlobeSection() {
 
   const handleReaction = useCallback(
     (type, buttonEl) => {
-      const x = 12 + Math.random() * 76;
-      const y = 15 + Math.random() * 52;
-      spawnParticle(type, x, y);
-      postReaction(type, x, y);
+      const angle = Math.random() * Math.PI * 0.85 + Math.PI * 0.075;
+      const dist = Math.random() * GLOBE_RADIUS * 0.55;
+      const spawn = clampToGlobe(
+        GLOBE_CENTER.x + Math.cos(angle) * dist,
+        GLOBE_CENTER.y - Math.abs(Math.sin(angle)) * dist * 0.7,
+      );
+      spawnParticle(type, spawn.x, spawn.y);
+      postReaction(type, spawn.x, spawn.y);
       setButtonBounce(type);
       window.setTimeout(() => setButtonBounce(null), 500);
       addFloatingIcon(type, buttonEl);
@@ -510,10 +603,7 @@ export default function SnowGlobeSection() {
                 aria-label="Goyangkan bola kaca"
                 className="absolute inset-0 cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
               >
-                <div
-                  ref={globeRef}
-                  className="absolute inset-0 overflow-hidden rounded-full"
-                >
+                <div className="absolute inset-0">
                   <Image
                     src="/snow-globe.png"
                     alt=""
@@ -523,42 +613,62 @@ export default function SnowGlobeSection() {
                     priority
                   />
 
-                  {[...Array(10)].map((_, i) => (
-                    <motion.div
-                      key={`snow-${i}`}
-                      className="pointer-events-none absolute h-1 w-1 rounded-full bg-white opacity-50"
-                      style={{
-                        left: `${8 + ((i * 17) % 84)}%`,
-                        top: "-4%",
-                      }}
-                      animate={{
-                        y: ["0%", "115%"],
-                        x: [0, Math.sin(i) * 12, Math.cos(i) * 8],
-                        opacity: [0.7, 0.25, 0.7],
-                      }}
-                      transition={{
-                        duration: 5.5 + i * 0.4,
-                        repeat: Infinity,
-                        ease: "linear",
-                        delay: i * 0.35,
-                      }}
-                    />
-                  ))}
+                  <div
+                    ref={glassRef}
+                    className="pointer-events-none absolute overflow-hidden rounded-full"
+                    style={{
+                      left: GLASS.left,
+                      top: GLASS.top,
+                      width: GLASS.width,
+                      aspectRatio: "1",
+                    }}
+                  >
+                    {[...Array(8)].map((_, i) => (
+                      <motion.div
+                        key={`snow-${i}`}
+                        className="absolute h-0.5 w-0.5 rounded-full bg-white opacity-40"
+                        style={{
+                          left: `${10 + ((i * 19) % 80)}%`,
+                          top: "0%",
+                        }}
+                        animate={{
+                          y: ["0%", "100%"],
+                          x: [0, Math.sin(i) * 8],
+                          opacity: [0.5, 0.2, 0.5],
+                        }}
+                        transition={{
+                          duration: 6 + i * 0.5,
+                          repeat: Infinity,
+                          ease: "linear",
+                          delay: i * 0.4,
+                        }}
+                      />
+                    ))}
 
-                  {particles.map((particle) => (
-                    <div
-                      key={particle.id}
-                      className="pointer-events-none absolute will-change-transform"
-                      style={{
-                        left: `${particle.x}%`,
-                        top: `${particle.y}%`,
-                        opacity: particle.opacity,
-                        transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
-                      }}
-                    >
-                      <ParticleIcon type={particle.type} size={particle.size} />
+                    <div ref={particleLayerRef} className="absolute inset-0">
+                      {particles.map((particle) => (
+                        <div
+                          key={particle.id}
+                          ref={(el) => {
+                            if (el) particleElsRef.current.set(particle.id, el);
+                            else particleElsRef.current.delete(particle.id);
+                          }}
+                          className="pointer-events-none absolute will-change-[left,top,transform,opacity]"
+                          style={{
+                            left: `${particle.x}%`,
+                            top: `${particle.y}%`,
+                            opacity: particle.opacity,
+                            transform: `translate(-50%, -50%) rotate(${particle.rotate}deg)`,
+                          }}
+                        >
+                          <ParticleIcon
+                            type={particle.type}
+                            size={particle.size}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
 
                   <div className="pointer-events-none absolute left-2 top-2 h-1/3 w-1/3 rounded-full bg-white opacity-20 blur-xl" />
                 </div>
