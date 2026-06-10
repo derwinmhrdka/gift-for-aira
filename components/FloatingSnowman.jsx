@@ -1,70 +1,153 @@
 "use client";
 
 import AdminAccessModal from "@/components/AdminAccessModal";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const IDLE_MESSAGES = [
-  "Selamat datang ongkel onty",
-  "Yuk coba gamesnya",
-  "Ada hadiah menarik lho",
+  "Selamat datang ongkel onty ❄️",
+  "Yuk coba gamesnya!",
+  "Ada hadiah menarik lho 🎁",
   "Tapi kasih wish buat aku dulu yuk",
-  "Terima kasih",
+  "Terima kasih 🌈",
 ];
 
-const IDLE_INTERVAL_MS = 5000;
-const IDLE_VISIBLE_MS = 1000;
+const IDLE_WAIT_MS = 5000;
+const IDLE_VISIBLE_MS = 2500;
 
-function SpeechBubbleTail() {
-  return (
-    <svg
-      aria-hidden
-      className="absolute -bottom-[10px] left-5"
-      width="24"
-      height="14"
-      viewBox="0 0 24 14"
-      fill="none"
-    >
-      <path
-        d="M3 1.5C7.5 1.5 11.5 2.5 16 1.5C13.5 5 10 8.5 4.5 12.5C6.5 9.5 6 4.5 3 1.5Z"
-        fill="rgba(255,255,255,0.95)"
-        stroke="rgba(203,213,225,0.7)"
-        strokeWidth="1"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+const BUBBLE_RADIUS = 14;
+const TAIL_HALF_WIDTH = 9;
+const TAIL_LENGTH = 12;
+
+function createSpeechBubblePath(width, height, tailCenterX) {
+  const w = width;
+  const h = height;
+  const r = BUBBLE_RADIUS;
+  const tcx = tailCenterX;
+  const left = tcx - TAIL_HALF_WIDTH;
+  const right = tcx + TAIL_HALF_WIDTH;
+  const tipY = h + TAIL_LENGTH;
+
+  return [
+    `M ${r} 1`,
+    `L ${w - r} 1`,
+    `Q ${w - 1} 1 ${w - 1} ${r}`,
+    `L ${w - 1} ${h - r}`,
+    `Q ${w - 1} ${h - 1} ${w - r} ${h - 1}`,
+    `L ${right} ${h - 1}`,
+    `Q ${tcx + 5} ${h + 4} ${tcx} ${tipY}`,
+    `Q ${tcx - 5} ${h + 4} ${left} ${h - 1}`,
+    `L ${r} ${h - 1}`,
+    `Q 1 ${h - 1} 1 ${h - r}`,
+    `L 1 ${r}`,
+    `Q 1 1 ${r} 1`,
+    "Z",
+  ].join(" ");
 }
 
-function SpeechBubble({ children, interactive = false, onAction, className = "" }) {
+function SpeechBubble({
+  children,
+  interactive = false,
+  onAction,
+  className = "",
+  tailCenterX,
+}) {
+  const contentRef = useRef(null);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
+
+  useLayoutEffect(() => {
+    const node = contentRef.current;
+    if (!node) return undefined;
+
+    function measure() {
+      const rect = node.getBoundingClientRect();
+      setDims({
+        w: Math.ceil(rect.width),
+        h: Math.ceil(rect.height),
+      });
+    }
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [children]);
+
+  const path =
+    dims.w > 0 && dims.h > 0
+      ? createSpeechBubblePath(dims.w, dims.h, tailCenterX)
+      : "";
+
   return (
     <div
       className={`absolute bottom-full left-0 z-[222] mb-1 w-max max-w-[min(14rem,calc(100vw-2rem))] ${className}`}
     >
-      <div className="relative rounded-[1.25rem] border border-slate-300/70 bg-white/95 px-3.5 py-2 shadow-[0_6px_20px_rgba(100,116,139,0.12)] backdrop-blur-[2px]">
-        {interactive ? (
-          <button
-            type="button"
-            onClick={onAction}
-            className="pointer-events-auto text-left text-xs font-medium leading-snug text-slate-700 transition hover:text-sky-600 focus:outline-none focus-visible:underline"
+      <div
+        className="relative"
+        style={{ paddingBottom: TAIL_LENGTH }}
+      >
+        {path ? (
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute left-0 top-0 overflow-visible drop-shadow-[0_6px_20px_rgba(100,116,139,0.12)]"
+            width={dims.w}
+            height={dims.h + TAIL_LENGTH}
           >
-            {children}
-          </button>
-        ) : (
-          <p className="text-xs font-medium leading-snug text-slate-700">{children}</p>
-        )}
-        <SpeechBubbleTail />
+            <path
+              d={path}
+              fill="rgba(255,255,255,0.95)"
+              stroke="rgba(203,213,225,0.7)"
+              strokeWidth="1"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
+        ) : null}
+
+        <div ref={contentRef} className="relative px-3.5 py-2">
+          {interactive ? (
+            <button
+              type="button"
+              onClick={onAction}
+              className="pointer-events-auto text-left text-xs font-medium leading-snug text-slate-700 transition hover:text-sky-600 focus:outline-none focus-visible:underline"
+            >
+              {children}
+            </button>
+          ) : (
+            <p className="text-xs font-medium leading-snug text-slate-700">
+              {children}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export default function FloatingSnowman() {
+  const snowmanRef = useRef(null);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [idleBubbleVisible, setIdleBubbleVisible] = useState(false);
   const [idleMessage, setIdleMessage] = useState(IDLE_MESSAGES[0]);
+  const [tailCenterX, setTailCenterX] = useState(36);
 
   const isInteractive = bubbleOpen || modalOpen;
+
+  useLayoutEffect(() => {
+    const node = snowmanRef.current;
+    if (!node) return undefined;
+
+    function measureSnowman() {
+      const img = node.querySelector("img");
+      if (!img) return;
+      setTailCenterX(Math.round(img.getBoundingClientRect().width / 2));
+    }
+
+    measureSnowman();
+    const observer = new ResizeObserver(measureSnowman);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (isInteractive) {
@@ -73,22 +156,31 @@ export default function FloatingSnowman() {
     }
 
     let messageIndex = 0;
+    let waitTimer;
     let hideTimer;
+    let cancelled = false;
 
-    function showNextIdleBubble() {
-      setIdleMessage(IDLE_MESSAGES[messageIndex]);
-      messageIndex = (messageIndex + 1) % IDLE_MESSAGES.length;
-      setIdleBubbleVisible(true);
+    function scheduleNextCycle() {
+      waitTimer = setTimeout(() => {
+        if (cancelled) return;
 
-      hideTimer = setTimeout(() => {
-        setIdleBubbleVisible(false);
-      }, IDLE_VISIBLE_MS);
+        setIdleMessage(IDLE_MESSAGES[messageIndex]);
+        messageIndex = (messageIndex + 1) % IDLE_MESSAGES.length;
+        setIdleBubbleVisible(true);
+
+        hideTimer = setTimeout(() => {
+          if (cancelled) return;
+          setIdleBubbleVisible(false);
+          scheduleNextCycle();
+        }, IDLE_VISIBLE_MS);
+      }, IDLE_WAIT_MS);
     }
 
-    const interval = setInterval(showNextIdleBubble, IDLE_INTERVAL_MS);
+    scheduleNextCycle();
 
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      clearTimeout(waitTimer);
       clearTimeout(hideTimer);
     };
   }, [isInteractive]);
@@ -123,18 +215,23 @@ export default function FloatingSnowman() {
 
       <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-[220]">
         {bubbleOpen ? (
-          <SpeechBubble interactive onAction={openAdminModal}>
+          <SpeechBubble
+            interactive
+            onAction={openAdminModal}
+            tailCenterX={tailCenterX}
+          >
             Masuk ke mode admin?
           </SpeechBubble>
         ) : null}
 
         {!bubbleOpen && !modalOpen && idleBubbleVisible ? (
-          <SpeechBubble className="pointer-events-none">
+          <SpeechBubble className="pointer-events-none" tailCenterX={tailCenterX}>
             {idleMessage}
           </SpeechBubble>
         ) : null}
 
         <button
+          ref={snowmanRef}
           type="button"
           onClick={toggleBubble}
           className="relative block cursor-pointer bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
