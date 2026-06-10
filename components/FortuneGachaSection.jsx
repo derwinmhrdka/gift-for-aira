@@ -256,7 +256,7 @@ function FortuneScroll({
             variants={SCROLL_ITEM}
             className="mt-5 text-center font-mono text-[0.62rem] uppercase tracking-widest text-zinc-400"
           >
-            Ramalan harian
+            Ramalan hari ini — reset lagi besok
           </motion.p>
         ) : null}
       </motion.div>
@@ -325,6 +325,20 @@ function BambooStick({
           }`}
         >
           <div className="pointer-events-none absolute inset-x-3 top-2 h-4 rounded-full bg-gradient-to-b from-white/80 to-transparent" />
+          <div className="absolute inset-x-0 top-2.5 flex flex-col items-center leading-none">
+            <span
+              className="font-serif text-[0.95rem] font-medium text-zinc-700 sm:text-base"
+              aria-hidden
+            >
+              {category.japaneseKanji}
+            </span>
+            <span
+              className="mt-0.5 font-mono text-[0.42rem] tracking-wide text-zinc-400 sm:text-[0.45rem]"
+              aria-hidden
+            >
+              {category.japaneseKana}
+            </span>
+          </div>
           {TUBE_SEGMENTS.map((top) => (
             <div
               key={top}
@@ -587,7 +601,7 @@ export default function FortuneGachaSection() {
           Bambu Ramalan Keberuntungan
         </h2>
         <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
-          Pilih bambu ramalanmu, lalu kocok untuk lihat hoki hari ini
+          Pilih bambu ramalanmu — hasil berlaku hari ini dan reset otomatis besok (WIB)
         </p>
 
         <div className="relative mt-8 flex flex-col items-center">
