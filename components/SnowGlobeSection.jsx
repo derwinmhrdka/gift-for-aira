@@ -392,7 +392,7 @@ export default function SnowGlobeSection() {
 
   const particlesRef = useRef([]);
   const seenEventIdsRef = useRef(new Set());
-  const lastPollRef = useRef(Date.now());
+  const spawnBaselineRef = useRef(null);
   const rafRef = useRef(null);
   const physicsActiveRef = useRef(false);
   const localIdRef = useRef(0);
@@ -574,6 +574,38 @@ export default function SnowGlobeSection() {
     startPhysics();
   }, [startPhysics]);
 
+  const spawnFromCountDelta = useCallback(
+    (serverCounts) => {
+      const next = normalizeCounts(serverCounts);
+      if (!next) return;
+
+      if (!spawnBaselineRef.current) {
+        spawnBaselineRef.current = { ...next };
+        return;
+      }
+
+      const base = spawnBaselineRef.current;
+      const types = ["love", "like", "snowflake"];
+
+      for (const type of types) {
+        const delta = Math.max(0, (next[type] ?? 0) - (base[type] ?? 0));
+        const capped = Math.min(delta, 5);
+        for (let i = 0; i < capped; i += 1) {
+          const spawn = spawnFromTop(40 + Math.random() * 20);
+          spawnParticle(
+            type,
+            spawn.x,
+            undefined,
+            `remote-${type}-${base[type] + i}-${Date.now()}`,
+          );
+        }
+      }
+
+      spawnBaselineRef.current = { ...next };
+    },
+    [spawnParticle],
+  );
+
   const addFloatingIcon = useCallback((type, buttonEl) => {
     const container = containerRef.current;
     const globe = glassRef.current;
@@ -605,29 +637,19 @@ export default function SnowGlobeSection() {
     }, 1100);
   }, []);
 
-  const syncFromServer = useCallback(
-    async (sinceMs, { includeEvents = true } = {}) => {
-      try {
-        const q = sinceMs > 0 ? `?since=${sinceMs}` : "";
-        const res = await fetch(`/api/reactions${q}`, { cache: "no-store" });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return;
-        applyCounts(data.counts);
-        if (includeEvents) {
-          for (const ev of data.events ?? []) {
-            spawnParticle(ev.type, ev.x, ev.y, ev.id);
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    },
-    [applyCounts, spawnParticle],
-  );
+  const syncFromServer = useCallback(async () => {
+    try {
+      const res = await fetch("/api/reactions?events=0", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      spawnFromCountDelta(data.counts);
+      applyCounts(data.counts);
+    } catch {
+      /* ignore */
+    }
+  }, [applyCounts, spawnFromCountDelta]);
 
   useEffect(() => {
-    lastPollRef.current = Date.now();
-
     async function loadInitial() {
       try {
         const res = await fetch("/api/reactions?events=0", {
@@ -636,6 +658,8 @@ export default function SnowGlobeSection() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
         applyCounts(data.counts);
+        const baseline = normalizeCounts(data.counts);
+        if (baseline) spawnBaselineRef.current = { ...baseline };
       } catch {
         /* ignore */
       }
@@ -644,9 +668,7 @@ export default function SnowGlobeSection() {
     loadInitial();
 
     const poll = setInterval(() => {
-      const since = lastPollRef.current;
-      lastPollRef.current = Date.now();
-      syncFromServer(since, { includeEvents: true });
+      syncFromServer();
     }, POLL_MS);
 
     return () => {
@@ -707,17 +729,23 @@ export default function SnowGlobeSection() {
   }
 
   const postReaction = useCallback(
-    async (type, x, y) => {
+    async (type) => {
       try {
         const res = await fetch("/api/reactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, x, y }),
+          body: JSON.stringify({ type }),
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           applyCounts(data.counts);
-          if (data.event?.id) seenEventIdsRef.current.add(data.event.id);
+          const baseline = normalizeCounts(data.counts);
+          if (baseline) {
+            spawnBaselineRef.current = mergeCounts(
+              spawnBaselineRef.current ?? emptyCounts(),
+              baseline,
+            );
+          }
         }
       } catch {
         /* ignore */
@@ -730,6 +758,7 @@ export default function SnowGlobeSection() {
     setCounts((prev) => {
       const merged = { ...prev, [type]: prev[type] + 1 };
       writeStoredCounts(merged);
+      spawnBaselineRef.current = { ...merged };
       return merged;
     });
   }, []);
@@ -741,7 +770,7 @@ export default function SnowGlobeSection() {
       const spawn = spawnFromTop(40 + Math.random() * 20);
       spawnParticle(type, spawn.x, undefined);
       bumpLocalCount(type);
-      postReaction(type, spawn.x, spawn.y);
+      postReaction(type);
       setButtonBounce(type);
       window.setTimeout(() => setButtonBounce(null), 500);
       addFloatingIcon(type, buttonEl);
