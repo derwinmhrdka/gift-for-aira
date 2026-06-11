@@ -258,7 +258,7 @@ function FortuneScroll({
             variants={SCROLL_ITEM}
             className="mt-5 text-center font-mono text-[0.62rem] uppercase tracking-widest text-zinc-400"
           >
-            Ramalan hari ini — reset lagi besok
+            Today's luck
           </motion.p>
         ) : null}
       </motion.div>
@@ -603,7 +603,7 @@ export default function FortuneGachaSection() {
           Bambu Ramalan Keberuntungan
         </h2>
         <p className="mt-1.5 text-center text-sm leading-relaxed text-slate-500">
-          Pilih bambu ramalanmu — hasil berlaku hari ini dan reset otomatis besok (WIB)
+          Tes keberuntunganmu hari ini 🍀
         </p>
 
         <div className="relative mt-8 flex flex-col items-center">
@@ -632,7 +632,7 @@ export default function FortuneGachaSection() {
             }
             className="mt-8 rounded-full border border-zinc-900/10 bg-zinc-900 px-7 py-3.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-zinc-50 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.35)] transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-zinc-800 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 sm:px-9"
           >
-            {isAnimating ? "Mengocok bambu..." : "Ambil Ramalan Hari Ini"}
+            {isAnimating ? "Gacha..." : "Ambil Ramalan"}
           </motion.button>
         </div>
       </FeatureCard>
