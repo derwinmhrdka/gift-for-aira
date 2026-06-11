@@ -2,7 +2,7 @@
 
 import { useAdminMode } from "@/components/AdminModeProvider";
 import FeatureCard from "@/components/FeatureCard";
-import { FORTUNE_CATEGORIES } from "@/lib/fortuneData";
+import { FORTUNE_CATEGORIES, LUCK_TIERS } from "@/lib/fortuneData";
 import {
   playFortuneResultSound,
   playGachaShakeSound,
@@ -83,11 +83,12 @@ function makeLuckSparkParticles(heavy = false) {
   });
 }
 
-function FortuneLuckSparks({ tier, active }) {
+function FortuneLuckSparks({ tier, tierKey, active }) {
   const [bursts, setBursts] = useState([]);
+  const resolvedTier = tier ?? (tierKey ? LUCK_TIERS[tierKey] : null);
 
   useEffect(() => {
-    if (!active || !tier || typeof window === "undefined") return;
+    if (!active || !resolvedTier || typeof window === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const cx = window.innerWidth / 2;
@@ -121,11 +122,17 @@ function FortuneLuckSparks({ tier, active }) {
     return () => {
       setBursts([]);
     };
-  }, [active, tier]);
+  }, [active, resolvedTier]);
 
-  if (typeof document === "undefined" || bursts.length === 0) return null;
+  useEffect(() => {
+    if (!active) setBursts([]);
+  }, [active]);
 
-  const spark = tier.spark;
+  if (typeof document === "undefined" || bursts.length === 0 || !resolvedTier?.spark) {
+    return null;
+  }
+
+  const spark = resolvedTier.spark;
 
   return createPortal(
     <div
@@ -639,6 +646,7 @@ export default function FortuneGachaSection() {
 
       <FortuneLuckSparks
         tier={result?.tier}
+        tierKey={result?.tierKey}
         active={showScroll && tickerActive}
       />
 
