@@ -343,7 +343,7 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
               }
             : {}
         }
-        transition={{ duration: 0.5, ease: "easeInOut" }}
+        transition={{ type: "tween", duration: 0.5, ease: "easeInOut" }}
       >
         {bursts.map((burst) => (
           <span
@@ -360,7 +360,7 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
         ))}
         <motion.div
           animate={isBouncing ? { scale: [1, 1.3, 0.85, 1.15, 1] } : {}}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
+          transition={{ type: "tween", duration: 0.5, ease: "easeInOut" }}
         >
           <Icon
             className={`h-6 w-6 sm:h-7 sm:w-7 ${reaction.colorClass}`}

@@ -25,6 +25,8 @@ const SHAKE_MS = 1500;
 const STICK_MS = 450;
 const PREMIUM_EASE = [0.16, 1, 0.3, 1];
 const SPRING_SNAPPY = { type: "spring", stiffness: 420, damping: 30, mass: 0.82 };
+/** Spring hanya mendukung 2 keyframe — pakai ini untuk array keyframe. */
+const TWEEN_KEYFRAMES = { type: "tween", ease: PREMIUM_EASE };
 const SCROLL_STAGGER = {
   hidden: {},
   show: {
@@ -297,10 +299,10 @@ function BambooStick({
       }}
       transition={
         isShaking
-          ? { duration: SHAKE_MS / 1000, ease: PREMIUM_EASE }
+          ? { ...TWEEN_KEYFRAMES, duration: SHAKE_MS / 1000 }
           : { ...SPRING_SNAPPY }
       }
-      whileTap={disabled ? {} : { scale: 0.97 }}
+      whileTap={disabled || isShaking ? {} : { scale: 0.97 }}
     >
       <motion.div
         animate={
@@ -310,7 +312,7 @@ function BambooStick({
         }
         transition={
           isPopping
-            ? { duration: STICK_MS / 1000, ease: PREMIUM_EASE }
+            ? { ...TWEEN_KEYFRAMES, duration: STICK_MS / 1000 }
             : { ...SPRING_SNAPPY }
         }
         className={`relative h-[8.75rem] w-[2.15rem] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] sm:h-[10.25rem] sm:w-[2.5rem] ${
@@ -617,13 +619,17 @@ export default function FortuneGachaSection() {
           <motion.button
             type="button"
             onClick={handleDraw}
-            whileTap={{ scale: 0.94 }}
+            whileTap={isAnimating ? {} : { scale: 0.94 }}
             animate={
               phase === "shaking"
                 ? { scale: [1, 1.04, 0.97, 1] }
                 : { scale: 1 }
             }
-            transition={{ type: "spring", stiffness: 520, damping: 14 }}
+            transition={
+              phase === "shaking"
+                ? { ...TWEEN_KEYFRAMES, duration: 0.5 }
+                : SPRING_SNAPPY
+            }
             className="mt-8 rounded-full border border-zinc-900/10 bg-zinc-900 px-7 py-3.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-zinc-50 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.35)] transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-zinc-800 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 sm:px-9"
           >
             {isAnimating ? "Mengocok bambu..." : "Ambil Ramalan Hari Ini"}
