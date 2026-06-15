@@ -2,6 +2,24 @@
 
 import { useAddSparkBurst } from "@/components/SparkBurstProvider";
 
+const PILL_BASE =
+  "font-display rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-aira-snow sm:px-5 sm:py-2.5 sm:text-base";
+
+function pillClass(active, activeStyle, inactiveStyle) {
+  return `${PILL_BASE} ${
+    active ? activeStyle : inactiveStyle
+  }`;
+}
+
+const PILL_ACTIVE =
+  "bg-gradient-to-r from-sky-200 to-blue-100 text-slate-950 shadow-sky-200/50";
+const PILL_INACTIVE =
+  "border border-white/55 bg-white/68 text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/80 motion-reduce:bg-white/95 motion-reduce:backdrop-blur-none";
+const PILL_RESERVED_ACTIVE =
+  "border border-white/70 bg-gradient-to-r from-aira-ice via-aira-frost to-aira-iceLight text-aira-navy shadow-[0_4px_14px_-6px_rgba(197,221,240,0.85)]";
+const PILL_RESERVED_INACTIVE =
+  "border border-aira-ice/55 bg-aira-iceLight/75 text-aira-navySoft shadow-sm backdrop-blur-sm hover:border-aira-ice/70 hover:bg-aira-frost/90 motion-reduce:bg-aira-iceLight/90 motion-reduce:backdrop-blur-none";
+
 export default function CategoryPills({
   categories,
   active,
@@ -12,18 +30,14 @@ export default function CategoryPills({
   const addBurst = useAddSparkBurst();
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 px-1 py-2">
+    <div className="flex flex-wrap items-center justify-center gap-1.5 px-1 py-1.5 sm:gap-2 sm:py-2">
       <button
         type="button"
         onClick={(e) => {
           addBurst(e.clientX, e.clientY);
           onSelect("all");
         }}
-        className={`font-display rounded-full px-5 py-2.5 text-base font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-aira-snow ${
-          active === "all"
-            ? "bg-gradient-to-r from-sky-200 to-blue-100 text-slate-950 shadow-sky-200/50"
-            : "border border-white/55 bg-white/68 text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/80 motion-reduce:bg-white/95 motion-reduce:backdrop-blur-none"
-        }`}
+        className={pillClass(active === "all", PILL_ACTIVE, PILL_INACTIVE)}
       >
         Semua
       </button>
@@ -35,11 +49,7 @@ export default function CategoryPills({
             addBurst(e.clientX, e.clientY);
             onSelect(cat);
           }}
-          className={`font-display rounded-full px-5 py-2.5 text-base font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-aira-snow ${
-            active === cat
-              ? "bg-gradient-to-r from-sky-200 to-blue-100 text-slate-950 shadow-sky-200/50"
-              : "border border-white/55 bg-white/68 text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/80 motion-reduce:bg-white/95 motion-reduce:backdrop-blur-none"
-          }`}
+          className={pillClass(active === cat, PILL_ACTIVE, PILL_INACTIVE)}
         >
           {cat}
         </button>
@@ -51,16 +61,13 @@ export default function CategoryPills({
             addBurst(e.clientX, e.clientY);
             onSelect(reservedFilterValue);
           }}
-          className={`font-display rounded-full px-5 py-2.5 text-base font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-aira-snow ${
-            active === reservedFilterValue
-              ? "bg-gradient-to-r from-slate-200 to-slate-100 text-slate-950 shadow-slate-200/50"
-              : "border border-white/55 bg-white/68 text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/80 motion-reduce:bg-white/95 motion-reduce:backdrop-blur-none"
-          }`}
+          className={pillClass(
+            active === reservedFilterValue,
+            PILL_RESERVED_ACTIVE,
+            PILL_RESERVED_INACTIVE,
+          )}
         >
           Sudah Dibeli
-          <span className="ml-1.5 tabular-nums text-sm font-bold opacity-80">
-            ({reservedCount})
-          </span>
         </button>
       ) : null}
     </div>
