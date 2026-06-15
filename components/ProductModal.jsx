@@ -134,8 +134,8 @@ export default function ProductModal({ product, onClose, onMarkedDone, onGiftSuc
           <div className="relative z-0 overflow-hidden rounded-3xl border border-white/70 bg-white/75 shadow-inner shadow-white/40 backdrop-blur-md motion-reduce:bg-white motion-reduce:backdrop-blur-none lg:h-full lg:min-h-[560px] lg:rounded-none lg:rounded-l-3xl lg:border-y-0 lg:border-l-0 lg:border-r lg:border-white/50">
             {unavailable ? (
               <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-slate-900/20 lg:rounded-l-3xl">
-                <span className="rounded-full border border-white/70 bg-white/92 px-4 py-2 text-sm font-bold uppercase tracking-wide text-slate-800 shadow-md">
-                  Reserved
+                <span className="rounded-full border border-white/70 bg-white/92 px-4 py-2 text-sm font-bold tracking-wide text-slate-800 shadow-md">
+                  Sudah Dibeli
                 </span>
               </div>
             ) : null}

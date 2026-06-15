@@ -12,6 +12,7 @@ import { sortProductsByPrice } from "@/lib/productPrice";
 
 const PAGE_SIZE = 10;
 const DESKTOP_PAGE_SIZE = 20;
+const RESERVED_FILTER = "__reserved__";
 
 function collectCategories(products) {
   const set = new Set();
@@ -47,6 +48,10 @@ export default function WishlistBoard({ products: initialProducts }) {
   const [products, setProducts] = useState(initialProducts);
   const boardTopRef = useRef(null);
   const categories = useMemo(() => collectCategories(products), [products]);
+  const reservedCount = useMemo(
+    () => products.filter((p) => p.done === true).length,
+    [products],
+  );
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [priceSort, setPriceSort] = useState("desc");
@@ -78,6 +83,9 @@ export default function WishlistBoard({ products: initialProducts }) {
 
   const filteredByCategory = useMemo(() => {
     if (filter === "all") return products;
+    if (filter === RESERVED_FILTER) {
+      return products.filter((p) => p.done === true);
+    }
     return products.filter((p) =>
       p.categories?.length
         ? p.categories.includes(filter)
@@ -156,8 +164,18 @@ export default function WishlistBoard({ products: initialProducts }) {
         categories={categories}
         active={filter}
         onSelect={setFilter}
+        reservedCount={reservedCount}
+        reservedFilterValue={RESERVED_FILTER}
       />
-      <WishlistGrid products={pagedProducts} onOpen={setSelected} />
+      <WishlistGrid
+        products={pagedProducts}
+        onOpen={setSelected}
+        emptyMessage={
+          filter === RESERVED_FILTER
+            ? "Belum ada produk yang sudah dibeli."
+            : "Tidak ada produk di kategori ini."
+        }
+      />
       {totalPages > 1 ? (
         <div className="mt-4 flex justify-end">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/72 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur-sm">

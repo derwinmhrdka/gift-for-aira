@@ -2,7 +2,13 @@
 
 import { useAddSparkBurst } from "@/components/SparkBurstProvider";
 
-export default function CategoryPills({ categories, active, onSelect }) {
+export default function CategoryPills({
+  categories,
+  active,
+  onSelect,
+  reservedCount = 0,
+  reservedFilterValue = "__reserved__",
+}) {
   const addBurst = useAddSparkBurst();
 
   return (
@@ -38,6 +44,25 @@ export default function CategoryPills({ categories, active, onSelect }) {
           {cat}
         </button>
       ))}
+      {reservedCount > 0 ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            addBurst(e.clientX, e.clientY);
+            onSelect(reservedFilterValue);
+          }}
+          className={`font-display rounded-full px-5 py-2.5 text-base font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-aira-snow ${
+            active === reservedFilterValue
+              ? "bg-gradient-to-r from-slate-200 to-slate-100 text-slate-950 shadow-slate-200/50"
+              : "border border-white/55 bg-white/68 text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/80 motion-reduce:bg-white/95 motion-reduce:backdrop-blur-none"
+          }`}
+        >
+          Sudah Dibeli
+          <span className="ml-1.5 tabular-nums text-sm font-bold opacity-80">
+            ({reservedCount})
+          </span>
+        </button>
+      ) : null}
     </div>
   );
 }
