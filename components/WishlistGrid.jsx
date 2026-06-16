@@ -30,7 +30,7 @@ export default function WishlistGrid({
           tabIndex={0}
           aria-label={
             unavailable
-              ? `${p.name}, sudah dibeli`
+              ? `${p.name}, sudah dipilih`
               : `Buka detail ${p.name}`
           }
           className={`group relative flex flex-col overflow-hidden rounded-3xl border text-left shadow-[0_8px_30px_-8px_rgba(56,189,248,0.18),inset_0_1px_0_0_rgba(255,255,255,0.75)] backdrop-blur-xl subpixel-antialiased transition duration-300 ease-out motion-reduce:from-white motion-reduce:via-white motion-reduce:to-white motion-reduce:shadow-md motion-reduce:backdrop-blur-none motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-sky-400/90 focus:ring-offset-2 focus:ring-offset-aira-snow motion-reduce:hover:translate-y-0 ${
@@ -75,7 +75,7 @@ export default function WishlistGrid({
             {unavailable ? (
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-900/25">
                 <span className="rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-xs font-bold tracking-wide text-slate-800 shadow-sm sm:text-sm">
-                  Sudah Dibeli
+                  Sudah Dipilih
                 </span>
               </div>
             ) : null}
