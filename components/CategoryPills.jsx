@@ -67,7 +67,7 @@ export default function CategoryPills({
             PILL_RESERVED_INACTIVE,
           )}
         >
-          Sudah Dibeli
+          Sudah Terpilih
         </button>
       ) : null}
     </div>
