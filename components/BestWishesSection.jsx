@@ -75,7 +75,7 @@ export default function BestWishesSection() {
           id="best-wishes-heading"
           className="font-display text-center text-xl font-bold text-aira-navy sm:text-2xl"
         >
-          Your best wishes!
+          Wishes for baby!
         </h2>
         {status !== "sent" ? (
           <p className="mt-2 text-center text-sm leading-relaxed text-slate-600 sm:text-[15px]">
