@@ -146,12 +146,14 @@ export default async function Home() {
           <LocationSection />
         </SectionShell>
 
-        /* <SectionShell
+        {/* 
+        <SectionShell
           className="mt-16 sm:mt-20"
           background={<SafariWash anchor="bottom" />}
         >
           <BankTransferSection />
-        </SectionShell> */
+        </SectionShell>
+        */}
 
         <footer className="relative z-10 mt-10 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-4 pb-6 text-center text-[10px] leading-relaxed text-slate-400">
           <span>Developed by Mahardiora</span>
