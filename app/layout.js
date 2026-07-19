@@ -3,7 +3,7 @@ import BackgroundMusicButton from "@/components/BackgroundMusicButton";
 import FloatingSnowman from "@/components/FloatingSnowman";
 import { SplashScreenProvider } from "@/components/SplashScreen";
 import Snowfall from "@/components/Snowfall";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -11,6 +11,13 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   display: "swap",
   weight: ["400", "500", "600", "700", "800"],
+});
+
+const elegantSerif = Cormorant_Garamond({
+  subsets: ["latin"],
+  variable: "--font-elegant",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 function siteUrl() {
@@ -47,7 +54,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <body
-        className={`${jakarta.variable} font-sans text-lg leading-relaxed antialiased`}
+        className={`${jakarta.variable} ${elegantSerif.variable} font-sans text-lg leading-relaxed antialiased`}
       >
         <AdminModeProvider>
           <SplashScreenProvider>

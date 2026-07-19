@@ -383,9 +383,7 @@ function ReactionButton({ reaction, count, onReact, isBouncing }) {
 }
 
 export default function SnowGlobeSection() {
-  const [counts, setCounts] = useState(
-    () => readStoredCounts() ?? emptyCounts(),
-  );
+  const [counts, setCounts] = useState(emptyCounts);
   const [particles, setParticles] = useState([]);
   const [buttonBounce, setButtonBounce] = useState(null);
   const [floatingIcons, setFloatingIcons] = useState([]);
@@ -648,6 +646,11 @@ export default function SnowGlobeSection() {
       /* ignore */
     }
   }, [applyCounts, spawnFromCountDelta]);
+
+  useEffect(() => {
+    const stored = readStoredCounts();
+    if (stored) setCounts(stored);
+  }, []);
 
   useEffect(() => {
     async function loadInitial() {

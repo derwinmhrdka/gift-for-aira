@@ -19,6 +19,7 @@ module.exports = {
       fontFamily: {
         sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
         display: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        elegant: ["var(--font-elegant)", "Times New Roman", "serif"],
       },
     },
   },

@@ -1,4 +1,4 @@
-import FortuneGachaSection from "@/components/FortuneGachaSection";
+import BirthAnnouncement from "@/components/BirthAnnouncement";
 import SnowGlobeSection from "@/components/SnowGlobeSection";
 import BankTransferSection from "@/components/BankTransferSection";
 import BestWishesSection from "@/components/BestWishesSection";
@@ -65,10 +65,11 @@ export default async function Home() {
               </h1>
             </div>
             <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-600 sm:text-base">
-              Hi onty ongkel, website ini untuk menyambut kehadiran {" "}
+              Hi onty ongkel, yuk sambut kelahiran si
+              <br />
               <span className="text-sky-600">&quot;Little Mahardika&quot; 🧸</span>
-              <br />Ucapan akan kami simpan dan sampaikan beberapa tahun mendatang
-              <br />Terima kasih atas doa dan dukungannya.
+              <br />
+              Terima kasih atas doa dan dukungannya.
             </p>
           </div>
         </header>
@@ -79,7 +80,8 @@ export default async function Home() {
             <SectionBackground src="/bg_3.jpg" gradient="soft" objectPosition="object-[center_30%]" />
           }
         >
-          <div className="mx-auto w-full max-w-xl">
+          <div className="mx-auto flex w-full max-w-xl flex-col gap-4 sm:gap-5">
+            <BirthAnnouncement />
             <BestWishesSection />
           </div>
         </SectionShell>
@@ -92,21 +94,6 @@ export default async function Home() {
         >
           <div className="mx-auto w-full max-w-xl overflow-visible">
             <SnowGlobeSection />
-          </div>
-        </SectionShell>
-
-        <SectionShell
-          className="mb-5 sm:mb-6"
-          background={
-            <SectionBackground
-              src="/bg_3.jpg"
-              gradient="soft"
-              objectPosition="object-[center_50%]"
-            />
-          }
-        >
-          <div className="mx-auto w-full max-w-xl">
-            <FortuneGachaSection />
           </div>
         </SectionShell>
 

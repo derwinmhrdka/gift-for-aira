@@ -366,7 +366,7 @@ body {
   display: flex;
   width: max-content;
   will-change: transform;
-  animation: wish-ticker-scroll 40s linear infinite;
+  animation: wish-ticker-scroll 70s linear infinite;
 }
 
 .wish-ticker__chunk {

@@ -78,8 +78,8 @@ export default function WishTicker() {
     return n + String(item.name).length + String(item.message).length;
   }, 0);
   const duration = Math.max(
-    24,
-    Math.min(52, tickerItems.length * 6.5 + charCount * 0.06),
+    45,
+    Math.min(240, tickerItems.length * 12 + charCount * 0.11),
   );
 
   return (

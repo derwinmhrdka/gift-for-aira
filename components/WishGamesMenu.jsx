@@ -27,7 +27,7 @@ const GAMES = [
   },
 ];
 
-function GameChoiceCard({ game, available, onSelect }) {
+function GameChoiceCard({ game, available, onSelect, doneLabel = "Selesai ✓" }) {
   const { id, title, emoji, desc, glow } = game;
 
   return (
@@ -41,9 +41,9 @@ function GameChoiceCard({ game, available, onSelect }) {
           : "border-slate-200/80 bg-slate-50/90 opacity-75"
       }`}
     >
-      {!available ? (
+      {!available && doneLabel ? (
         <span className="absolute right-2 top-2 rounded-full bg-slate-200/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-600">
-          Selesai ✓
+          {doneLabel}
         </span>
       ) : null}
 
@@ -96,10 +96,10 @@ export default function WishGamesMenu({ onSendAgain, wishId, wishName }) {
   }, [refreshParticipation, isAdmin]);
 
   const active = GAMES.find((g) => g.id === activeGame);
-  const allDone =
-    checked && !participation.card && !participation.doorprize && !isAdmin;
+  const sessionClosed = !isAdmin;
 
   async function openGame(id) {
+    if (sessionClosed) return;
     if (!participation[id] || openingGame) {
       refreshParticipation();
       return;
@@ -145,11 +145,23 @@ export default function WishGamesMenu({ onSendAgain, wishId, wishName }) {
           Terkirim. Terima kasih! 💖
         </p>
 
-        {allDone ? (
-          <p className="mt-3 rounded-2xl border border-sky-200/80 bg-sky-50/80 px-4 py-3 text-sm text-slate-600">
-            Kamu sudah berpartisipasi semua game. Tunggu hasil dan hadiahnya ya!
-            🎁
-          </p>
+        {sessionClosed ? (
+          <>
+            <p className="mt-3 rounded-2xl border border-sky-200/80 bg-sky-50/80 px-4 py-3 text-sm text-slate-600">
+              Sesi selesai, terima kasih yang sudah berpartisipasi
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2.5 sm:gap-3">
+              {GAMES.map((game) => (
+                <GameChoiceCard
+                  key={game.id}
+                  game={game}
+                  available={false}
+                  doneLabel="Tutup"
+                  onSelect={openGame}
+                />
+              ))}
+            </div>
+          </>
         ) : checked ? (
           <>
             <p className="mt-2 text-sm text-slate-600">
